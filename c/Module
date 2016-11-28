@@ -1,0 +1,482 @@
+/* Copyright 2016 Castle Technology Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#include "PMInclude.h"
+
+#include "swis.h"
+#include "debuglib/debuglib.h"
+#include "Global/Services.h"
+#include "Global/RISCOS.h"
+#include "Global/Upcall.h"
+
+#include "ModuleHdr.h"
+#include "PMModule.h"
+#include "scsisvce.h"
+#include "asm.h"
+#include "GPThdr.h"
+#include "FormatBits.h"
+#include "Format.h"
+
+#include "Diagnostic.h"
+
+void *module_wsp;                // so we can know the module pwp globally
+static int msg_struct[4];
+static _kernel_oserror msg_buff;
+
+typedef struct partitionArray{
+  unsigned char used;
+  unsigned char drive;
+  unsigned char mounted;
+  unsigned char reported;
+ int           partitionLBA;
+}partitionArray;
+
+#define MaxPartitions 8
+typedef struct driveArray{
+  partitionArray  partition[MaxPartitions];// at start of struct to alias address
+  int scsiid;
+  int initialised;
+  struct driveArray * next;
+  struct driveArray * last;
+}driveArray;
+
+static driveArray *Drives;
+driveArray * Drive2Array(int id);
+void freeDriveArray(driveArray* array);
+partitionArray * registerDrive(int id, int LBA);
+driveArray* ReadDrivePartitions (int drive);
+
+
+#define task_name "Partition Manager"          /* the name of our task */
+static _kernel_swi_regs reg;
+
+const char *module_lookup(const char *token)
+{
+    if (_swix(MessageTrans_Lookup, _INR(0,7),
+              msg_struct, token, &msg_buff, sizeof(msg_buff), 0, 0, 0, 0) != NULL)
+    {
+        return "";
+    }
+    return (const char *)&msg_buff;
+}
+
+_kernel_oserror *module_error(unsigned err)
+{
+    char token[12];
+    _kernel_oserror *e;
+
+    if (err > 256) return (_kernel_oserror *) err;
+
+    sprintf(token, "@@@@E%02x", err);
+    e = _swix(MessageTrans_ErrorLookup, _INR(0,3),
+              token, msg_struct, &msg_buff, sizeof(msg_buff));
+    if (e->errnum == 0x40404040)
+    {
+        /* Same error number out as went in, looked up OK */
+        msg_buff.errnum = PartMan_ErrorBase + err;
+    }
+    return e;
+}
+
+void wimp_error(_kernel_oserror *er)
+{
+  /*
+   * Generic routine to handle error reporting
+   * through the wimp
+   */
+
+  if(er!=(_kernel_oserror *)NULL)
+  {
+   reg.r[0] = (int) er;
+   reg.r[1] =       0;
+   reg.r[2] = (int) task_name;
+   _kernel_swi(Wimp_ReportError, &reg, &reg);
+  }
+}
+
+_kernel_oserror *module_initialise(const char *cmd_tail, int podule_base, void *pw)
+{
+    (void) cmd_tail;
+    (void) podule_base;
+    _kernel_oserror *err = NULL;
+    bool UpCall = false;
+    module_wsp = pw;
+    debug_initialise ("PartMan", "", 0);
+    debug_set_device(DADEBUG_OUTPUT);
+    debug_set_unbuffered_files (TRUE);
+    debug_set_stamp_debug (TRUE);
+    testfileinit();
+
+    Drives = NULL;
+#ifndef ROM
+    err = _swix(ResourceFS_RegisterFiles, _IN(0), Resources());
+    if (err != NULL) goto failinit;
+#endif
+    err = _swix(MessageTrans_OpenFile, _INR(0,2), msg_struct, Module_MessagesFile, 0);
+    if (err != NULL) goto faildereg;
+
+    if(err = _swix(OS_Claim, _INR(0,2), UpCallV, upcallvhandler,
+              module_wsp), !err) UpCall = true;
+
+    return NULL;
+
+faildereg:
+#ifndef ROM
+    _swix(ResourceFS_DeregisterFiles, _IN(0), Resources());
+failinit:
+#endif
+    if(UpCall) _swix(OS_Release, _INR(0,2), UpCallV, upcallvhandler,
+                            module_wsp);
+
+
+    return err;
+}
+
+_kernel_oserror *module_finalise(int fatal, int podule, void *pw)
+{
+    (void) fatal;
+    (void) podule;
+    (void) pw;
+    _swix(OS_Release, _INR(0,2), UpCallV, upcallvhandler,
+                            module_wsp);
+
+
+    /* Tidy up the messages (and deregister from ResourceFS if not in ROM) */
+    _swix(MessageTrans_CloseFile, _IN(0), msg_struct);
+#ifndef ROM
+    _swix(ResourceFS_DeregisterFiles, _IN(0), Resources());
+#endif
+
+// remove any drive arrays
+
+  char buf[32];
+  while (Drives)
+  {
+    // for each drive seen, dismount any reported discs and free memory
+    driveArray * dr = Drives;
+    Drives =(driveArray *)dr->next;
+    for (int i=0; i<MaxPartitions;i++)
+    {
+      sprintf(buf,"*scsi:dismount :%1d",dr->partition[i].drive);
+      if((dr->partition[i].used)&&(dr->partition[i].mounted))
+      {
+//        testprint(buf);
+        _kernel_oscli(buf);
+      }
+    }
+    free(dr);
+  }
+
+
+
+    return NULL;
+}
+
+_kernel_oserror *UpCallVHandler(_kernel_swi_regs *r, void *pw)
+{
+  pw=pw;
+  if(r->r[0]==UpCall_DriveRemoved)
+  {
+    if(*(int*)(r->r[1]) == 0x49534353)
+    {
+      int drive = (int)*(char*)(r->r[1]+6) -0x30;
+      driveArray * dr = Drive2Array(drive);
+      if(dr) freeDriveArray(dr);
+//   testprint2("removed %1d, ps:%x\n",drive,(int)dr);
+    }
+  }
+  return NULL;
+}
+
+
+// return drive array for this drive, or NULL
+driveArray * Drive2Array(int id)
+{
+  driveArray * dr = Drives;
+  while(dr)
+  {
+//  testprint2("d2a %x %x",id, (int)dr);
+    if((dr)->scsiid==id) break;
+    dr = ((dr)->next);
+  }
+  return dr;
+}
+// return next free partitionArray pointer for scsi ID
+// or array relevant to this LBA
+// if LBA = -1 then return address of first partition array
+// or null if all used,
+partitionArray * registerDrive(int id, int LBA)
+{
+  driveArray * dr = Drives, * newdrlast = dr;
+//  testprint2("in rD %x Drives addr is %x\n",(int)dr,(int)&Drives);
+  while(dr)
+  {
+    if((dr)->scsiid==id) break;
+    newdrlast = dr;
+    dr = ((dr)->next);
+  }
+  if(!dr)
+  {
+    dr = (driveArray *)calloc(1,sizeof(driveArray));
+    if(dr)
+    {
+      (dr)->scsiid=id;
+      if(newdrlast)
+      {
+        (dr)->last = newdrlast;
+        dr->last->next=dr;
+      }
+      else
+      {
+        Drives=dr;
+      }
+    }
+  }
+//  testprint3(" Drives addr is %x ,pa addr %x recording %x as last\n",
+//               (int)&Drives,(int)(dr),(int)((dr)->last));
+  if(LBA==-1) return &(dr)->partition[0];
+  for (int i=0;i<MaxPartitions;i++)
+  {
+    if ((!(dr)->partition[i].used)
+    || ((dr)->partition[i].partitionLBA == LBA))
+    {
+      return &(dr)->partition[i];
+    }
+  }
+  return NULL;
+}
+//forgetDrive(
+void freeDriveArray(driveArray* array)
+{
+  driveArray  *temp = array;
+  if((array)->last)
+  {
+    if(array == Drives)
+    {
+      Drives=(array)->next;
+      if((array)->next)(array)->next->last=Drives;
+    }
+    else
+    {
+      (array)->last->next=(array)->next;
+      if((array)->next)(array)->next->last=(array)->last;
+    }
+  }
+  else
+  {
+    Drives = NULL;
+  }
+//  testprint2("free %x Drives = %x\n",(int)temp,(int)Drives);
+  if(temp)free(temp);
+}
+
+// returns a driveArray* if partitions successfully found on drive
+driveArray* ReadDrivePartitions (int drive)
+{
+  driveArray* dr=Drive2Array(drive);
+  partitionArray* pa=registerDrive(drive, -1);
+    testprint1("RDA dr %x\n", (int)dr);
+  if (!pa->used)
+  { // drive not evaluated yet.. get the partition table
+    if(CheckGPTValid(drive))
+    { // found partition info
+      GUIDPartn* myGP;
+      extern GUIDPartn* gpt; // set up by CheckGPTValid()
+      extern GPTHeader* gpth;
+      myGP=gpt;
+      for (int i=0; i<gpth->GUIDPnum;i++)
+      {
+        if(GUIDValid((char*)(myGP->PTypeGUID)))
+        {
+          pa=registerDrive(drive, myGP->StartLBA[0]);
+        testprint1("\npa found %x\n", (int)pa);
+          if(pa)
+          {
+          pa->partitionLBA = myGP->StartLBA[0];
+          pa->used = 1;
+          }
+         testprint2("Got drive start LBA %x, pa=%x\n",myGP->StartLBA[0],(int)pa);
+        }
+        myGP++;
+      }
+    }
+    else
+    { // couldnt get partition info
+      return NULL;
+    }
+  }
+  return dr;
+}
+
+void module_service_handler(int service_number, _kernel_swi_regs *r, void *pw)
+{
+  (void) pw;
+//  testprint1("Service %x\n",service_number);
+  switch (service_number)
+  {
+    // attach and detach have device in r0 and mask in r2
+  case Service_SCSIAttached:
+  {
+    partitionArray * pa=registerDrive(r->r[0]&r->r[2], -1);
+    testprint2("Attached id %x pa %x\n",r->r[0]&r->r[2],(int)pa);
+  // flag we have a new scsi ID
+//  testprint3("attach scsi drive %x %x %x\n",r->r[0],r->r[2],r->r[0]&r->r[2]);
+  }
+      break;
+    case Service_SCSIDetached:
+    {
+//      testprint3("detach drive %x %x %x\n",r->r[2],r->r[2],r->r[0]&r->r[2]);
+      // we need to forget the partition info for this drive
+      driveArray* dr = Drive2Array(r->r[0]&r->r[2]);
+      testprint1("abt to free %x\n",(int)dr);
+      freeDriveArray(dr);
+    }
+      break;
+  case Service_SCSIMounting:
+    {  // r3 = scsi id
+       testprint4("\nMounting %x %x %x %x \n",r->r[0],r->r[1],r->r[2],r->r[3]);
+
+    partitionArray* pa=&(ReadDrivePartitions (r->r[3]))->partition[0];
+    partitionArray* pabase=pa;
+//       registerDrive(r->r[3], -1);
+//       testprint1("basepa %x\n",(int)pa);
+//       if (!pa->used)
+//       { // drive not evaluated yet.. get the partition table
+//         if(CheckGPTValid(r->r[3]))
+//         {
+//            GUIDPartnp myGP;
+//            extern GUIDPartnp gpt; // set up by CheckGPTValid()
+//            extern GPTHeaderp gpth;
+//            myGP=gpt;
+//            for (int i=0; i<gpth->GUIDPnum;i++)
+//            {
+//              if(GUIDValid((char*)(myGP->PTypeGUID)))
+//              {
+//                pa=registerDrive(r->r[3], myGP->StartLBA[0]);
+////            testprint1("\npa found %x\n", (int)pa);
+//                if(pa)
+//                {
+//                pa->partitionLBA = myGP->StartLBA[0];
+//                pa->used = 1;
+//                }
+// //              testprint2("Got drive start LBA %x, pa=%x\n",myGP->StartLBA[0],(int)pa);
+//              }
+//              myGP++;
+//            }
+//         }
+//      }
+      // now report next unused partition
+      for (int i=0;i<MaxPartitions;i++)
+      {
+        if(pabase->used&&!pabase->mounted)
+        {
+          pabase->mounted=1;
+       testprint3("give partition offset for drive %d, ID %x as %x\n",r->r[2],r->r[3],pabase->partitionLBA);
+          _swix(SCSIFS_Partitions,_INR(0,2),0,r->r[2],pabase->partitionLBA);
+          i = MaxPartitions;
+        }
+        pabase++;
+      }
+      driveArray * dr;
+      if(dr = Drive2Array(r->r[3]), dr) dr->initialised = 1;
+      freepointers();
+    }
+
+ break;
+
+#ifndef ROM
+    case Service_ResourceFSStarting:
+    {
+        /* Reregister our resources */
+        (*(void (*)(void *, void *, void *, void *))r->r[2])(Resources(), 0, 0, (void *)r->r[3]);
+    }
+    break;
+  #endif
+  default:
+  {
+//    (void) service_number;
+//    (void) r;
+    break;
+  }
+  }
+  }
+// evaluate current partition offset, issue relevant scsifs_partition swi
+// and work out if further partitions possible
+// On entry, r->r[1] = scsiID, r->r[2] =1
+// On exit r->r[1] unchanged, r->r[2] = 0 if more partitions available
+_kernel_oserror *PM_MorePartitions(_kernel_swi_regs *r, void *pw)
+{
+  (void) pw;
+  driveArray* dr =Drive2Array(r->r[1]);
+  if(dr)
+  { // this is a drive we've seen attached
+    testprint("PMM ");
+    dr = ReadDrivePartitions (r->r[1]);
+
+
+    partitionArray* pap=&dr->partition[0];
+ //   if(!dr->initialised)
+ //   {
+ //   }
+    for (int i=0;i<MaxPartitions;i++)
+    {
+      if(pap->used&&!pap->reported)
+      {
+        pap->reported=1;
+        if((i<MaxPartitions-1)&&(++pap)&& (pap->used))r->r[2]=0;
+        testprint2(":%02x pap %x \n",r->r[1],(int)pap);
+        return NULL;
+      }
+      pap++;
+    }
+    testprint("Q\n");
+  }
+  return (NULL);
+}
+_kernel_oserror *module_swi_handler(int swi_offset, _kernel_swi_regs *r, void *pw)
+{
+    (void) pw;
+
+    switch (swi_offset)
+    {
+    case PartMan_MorePartitions - PartMan_00:
+            return PM_MorePartitions(r,pw);
+//        case PM_Initialise - PM_00:
+//            return PM_Initialise(r,pw);
+//        case PM_Control - PM_00:
+//            return PM_Control(r,pw);
+//        case PM_Transfer - PM_00:
+//            return PM_Transfer(r,pw);
+//        case PM_Status - PM_00:
+//            return PM_Status(r,pw);
+    }
+    return module_error(PartMan_SWIUnKn);
+}
+
+_kernel_oserror *module_cmd_handler(const char *arg_string, int argc, int cmd_no, void *pw)
+{
+    (void) arg_string;
+    (void) argc;
+    (void) cmd_no;
+    (void) pw;
+    switch(cmd_no)
+    {
+    case CMD_ListPartitions:
+      return NULL;
+    }
+
+
+    return module_error(PartMan_UnKnCmd);
+}
+
