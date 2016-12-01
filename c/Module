@@ -256,26 +256,30 @@ partitionArray * registerDrive(int id, int LBA)
   }
   return NULL;
 }
-//forgetDrive(
+
+// unlink and free a drive array
 void freeDriveArray(driveArray* array)
 {
   driveArray  *temp = array;
-  if((array)->last)
+  if(array)
   {
-    if(array == Drives)
+    if((array)->last)
     {
-      Drives=(array)->next;
-      if((array)->next)(array)->next->last=Drives;
+      if(array == Drives)
+      {
+        Drives=(array)->next;
+        if((array)->next)(array)->next->last=Drives;
+      }
+      else
+      {
+        (array)->last->next=(array)->next;
+        if((array)->next)(array)->next->last=(array)->last;
+      }
     }
     else
     {
-      (array)->last->next=(array)->next;
-      if((array)->next)(array)->next->last=(array)->last;
+      Drives = NULL;
     }
-  }
-  else
-  {
-    Drives = NULL;
   }
 //  testprint2("free %x Drives = %x\n",(int)temp,(int)Drives);
   if(temp)free(temp);
@@ -339,8 +343,9 @@ void module_service_handler(int service_number, _kernel_swi_regs *r, void *pw)
 //      testprint3("detach drive %x %x %x\n",r->r[2],r->r[2],r->r[0]&r->r[2]);
       // we need to forget the partition info for this drive
       driveArray* dr = Drive2Array(r->r[0]&r->r[2]);
+
       testprint1("abt to free %x\n",(int)dr);
-      freeDriveArray(dr);
+      if (dr) freeDriveArray(dr);
     }
       break;
   case Service_SCSIMounting:
@@ -376,17 +381,20 @@ void module_service_handler(int service_number, _kernel_swi_regs *r, void *pw)
 //            }
 //         }
 //      }
-      // now report next unused partition
-      for (int i=0;i<MaxPartitions;i++)
+// now report next unused partition
+      if(pabase)
       {
-        if(pabase->used&&!pabase->mounted)
+        for (int i=0;i<MaxPartitions;i++)
         {
-          pabase->mounted=1;
-       testprint3("give partition offset for drive %d, ID %x as %x\n",r->r[2],r->r[3],pabase->partitionLBA);
-          _swix(SCSIFS_Partitions,_INR(0,2),0,r->r[2],pabase->partitionLBA);
-          i = MaxPartitions;
+          if(pabase->used&&!pabase->mounted)
+          {
+            pabase->mounted=1;
+         testprint3("give partition offset for drive %d, ID %x as %x\n",r->r[2],r->r[3],pabase->partitionLBA);
+            _swix(SCSIFS_Partitions,_INR(0,2),0,r->r[2],pabase->partitionLBA);
+            i = MaxPartitions;
+          }
+          pabase++;
         }
-        pabase++;
       }
       driveArray * dr;
       if(dr = Drive2Array(r->r[3]), dr) dr->initialised = 1;
@@ -424,23 +432,25 @@ _kernel_oserror *PM_MorePartitions(_kernel_swi_regs *r, void *pw)
     testprint("PMM ");
     dr = ReadDrivePartitions (r->r[1]);
 
-
-    partitionArray* pap=&dr->partition[0];
- //   if(!dr->initialised)
- //   {
- //   }
-    for (int i=0;i<MaxPartitions;i++)
+    if(dr)
     {
-      if(pap->used&&!pap->reported)
+      partitionArray* pap=&dr->partition[0];
+ //     if(!dr->initialised)
+ //     {
+ //     }
+      for (int i=0;i<MaxPartitions;i++)
       {
-        pap->reported=1;
-        if((i<MaxPartitions-1)&&(++pap)&& (pap->used))r->r[2]=0;
-        testprint2(":%02x pap %x \n",r->r[1],(int)pap);
-        return NULL;
+        if(pap->used&&!pap->reported)
+        {
+          pap->reported=1;
+          if((i<MaxPartitions-1)&&(++pap)&& (pap->used))r->r[2]=0;
+          testprint2(":%02x pap %x \n",r->r[1],(int)pap);
+          return NULL;
+        }
+        pap++;
       }
-      pap++;
+      testprint("Q\n");
     }
-    testprint("Q\n");
   }
   return (NULL);
 }

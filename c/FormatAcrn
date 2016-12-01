@@ -32,6 +32,7 @@ static _kernel_oserror our_error;
 #define MaxZonesNormalDir 0x7f           // max number of zones to permit in a format without big dirs
 #define MaxZonesBigDir    0x7fff         // max number of zones to permit in a format with big dirs
 
+#define CHSRound(c,h,s,secs) {h=16;do{h++;c=secs/h;s=63;while(c%s)s--;c/=s;}while((c>65535)&&(h>255));secs=c*h*s;}
 
 // write a fragment into a zone
 // Assume FragmentID and FragmentLen are legitimate
@@ -73,25 +74,25 @@ int MakeAcornFormat(int         ID,
    fa.bigdir = (char)bigdir;
 
    // suggest a head/cylinder/lfau setup
-   int discsize = SecCount;
-   int heads=16, secs=63,cyls=0;  // initialise
-   do
-   {
-     heads++;
-     cyls=discsize/heads;
-     secs=63;
-     while(cyls%secs) secs--;
-     cyls=cyls/secs;
+   CHSRound(fa.cyls,fa.heads,fa.spt,fa.SecCount);
 
-   } while((cyls>65535)&&(heads>255));
-   testprint3(" suggested heads %d, cyls %d, secs %d\n",heads,cyls,secs);
+//   do
+//   {
+//     heads++;
+//     cyls=discsize/heads;
+//     secs=63;
+//     while(cyls%secs) secs--;
+//     cyls=cyls/secs;
+//
+//   } while((cyls>65535)&&(heads>255));
+   testprint4(" suggested heads %d, cyls %d, secs %d giving disk size %x\n",fa.heads,fa.cyls,fa.spt,fa.SecCount);
 
 
 
 
 #if Debug
  map = calloc(1024,1);
- sprintf(map,"AFmt id   %x key %x size %x BaseOff %x SC %x bigdir %d\n",ID,AccessKey,SecSize,BaseOffset,SecCount,bigdir);
+ sprintf(map,"AFmt id   %x key %x size %x BaseOff %x SC %x bigdir %d\n",ID,AccessKey,fa.SecSize,BaseOffset,fa.SecCount,bigdir);
  testprint(map);
  free(map);
 #endif
@@ -116,19 +117,19 @@ int MakeAcornFormat(int         ID,
      *(j+i) = 0;                    // clear to null
    }
    k=0;
-   //while((*(defect+k)>0)&&(*(defect+k)<(0x1fffffff>>fa.log2secsize)))
-   //{
-   //  boot->defects[k] = *(defect+k)<<fa.log2secsize;
-   //  k++;
-   //}
+   while(defect&&(*(defect+k)>0)&&(*(defect+k)<(0x1fffffff>>fa.log2secsize)))
+   {
+     boot->defects[k] = *(defect+k)<<fa.log2secsize;
+     k++;
+   }
    boot->defects[k]=0x20000000;
    if(fa.bigdisc == 1)
    {
-    // while(*(defect+k)>0)
-    // {
-    //   boot->defects[k+1] = *(defect+k);
-    //   k++;
-    // }
+     while(defect&&*(defect+k)>0)
+     {
+       boot->defects[k+1] = *(defect+k);
+       k++;
+     }
      boot->defects[k+1]=0x40000000;
    }
    DefectChecksum((int*)&boot->defects[0],fa.bigdisc);
@@ -201,7 +202,7 @@ int MakeAcornFormat(int         ID,
 //   compute zonestart & zoneend disc addresses (sectors)
      zonestart = zoneend;
      zoneend = zonestart + ((((60*8)-fa.zonespare)<<fa.log2bpmb)>>fa.log2secsize);
-     while((*defect>0)&&(*defect>=zonestart)&&(*defect<zoneend))
+     while(defect&&(*defect>0)&&(*defect>=zonestart)&&(*defect<zoneend))
      {
 //     compute bit offset & skew of frag start to map out defect sector
        i = skew = (((*(defect++)-zonestart)<<fa.log2bpmb)>>fa.log2secsize)+0x18;
@@ -755,17 +756,18 @@ void ComputeAcornLayout(FormatArray* fmt)
    }
 // compute plausible heads & spt
 
-// suggest a head/cylinder/spt setup
-   fmt->heads=16;   // initialise
-   do
-   {
-     fmt->heads++;
-     fmt->cyls=fmt->SecCount/fmt->heads;
-     fmt->spt=63;
-     while(fmt->cyls%fmt->spt) fmt->spt--;
-     fmt->cyls=fmt->cyls/fmt->spt;
-
-   } while((fmt->cyls>65535)&&(fmt->heads>255));
+   // suggest a head/cylinder/spt setup
+   CHSRound(fmt->cyls,fmt->heads,fmt->spt,fmt->SecCount);
+//   fmt->heads=16;   // initialise
+//   do
+//   {
+//     fmt->heads++;
+//     fmt->cyls=fmt->SecCount/fmt->heads;
+//     fmt->spt=63;
+//     while(fmt->cyls%fmt->spt) fmt->spt--;
+//     fmt->cyls=fmt->cyls/fmt->spt;
+//
+//   } while((fmt->cyls>65535)&&(fmt->heads>255));
 //   testprint3("heads %d, cyls %d, secs %d\n",fmt->heads,fmt->cyls,fmt->spt);
 
 }

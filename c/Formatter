@@ -28,23 +28,25 @@ _kernel_oserror * FormatPartition( int ID, FormatParamsp FP, int sectorsize)
 testprint3("FormatPartition ID:%x partn:%d name:%s\n",ID,FP->partition,(int)FP->discname);
 // first read the partition spec
   GUIDPartn* myGP = ReturnGPTPartionInfo ( ID, FP->partition);
-         printGUIDpart(myGP);
-
-  switch(FP->type)
+  if(myGP)
   {
-  case GUIDWinNorm:
-    MakeDosFormat(ID,OverrideKey,sectorsize,myGP->StartLBA[0],myGP->EndLBA[0]-myGP->StartLBA[0]-1,myGP->EndLBA[0]-myGP->StartLBA[0]-1,FP->discname, NULL,-1,1);
-
-break;
-case GUIDFilecore:
-    MakeAcornFormat(ID,OverrideKey,sectorsize,myGP->StartLBA[0],myGP->EndLBA[0]-myGP->StartLBA[0]-1,FP->discname, NULL,2,1);
+   printGUIDpart(myGP);
+   switch(FP->type)
+    {
+    case GUIDWinNorm:
+      MakeDosFormat(ID,OverrideKey,sectorsize,myGP->StartLBA[0],myGP->EndLBA[0]-myGP->StartLBA[0]-1,myGP->EndLBA[0]-myGP->StartLBA[0]-1,FP->discname, NULL,-1,1);
 
   break;
-default:
-  err.errnum=0;
-  strncpy(err.errmess,"no known format",250);
-  wimp_error(&(err));
-  return &(err);
+  case GUIDFilecore:
+      MakeAcornFormat(ID,OverrideKey,sectorsize,myGP->StartLBA[0],myGP->EndLBA[0]-myGP->StartLBA[0]-1,FP->discname, NULL,2,1);
+
+    break;
+  default:
+    err.errnum=0;
+    strncpy(err.errmess,"no known format",250);
+    wimp_error(&(err));
+    return &(err);
+    }
   }
   return NULL;
 }
