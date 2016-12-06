@@ -39,7 +39,7 @@ static _kernel_oserror our_error;
 void fragwrite(char* mapsector, int position, int FragmentID, int FragmentLen, int IDlen)
 {
 
-testprint5("FW: mapsec:%x pos:%x id:%x len:%x idlen%x\n",(int)mapsector,position,FragmentID,FragmentLen,IDlen);
+testprint("FW: mapsec:%x pos:%x id:%x len:%x idlen%x\n",(int)mapsector,position,FragmentID,FragmentLen,IDlen);
   FragmentID=(FragmentID>>8)<<(position%8);
   // n.b. offset of 1 added to position to allow for zone cksum at byte 0 of zone
   mapsector[1+(position/8)] |= (FragmentID>>0 );
@@ -85,7 +85,7 @@ int MakeAcornFormat(int         ID,
 //     cyls=cyls/secs;
 //
 //   } while((cyls>65535)&&(heads>255));
-   testprint4(" suggested heads %d, cyls %d, secs %d giving disk size %x\n",fa.heads,fa.cyls,fa.spt,fa.SecCount);
+   testprint(" suggested heads %d, cyls %d, secs %d giving disk size %x\n",fa.heads,fa.cyls,fa.spt,fa.SecCount);
 
 
 
@@ -101,7 +101,7 @@ int MakeAcornFormat(int         ID,
    wimp_error( SecRead(ID, AccessKey, tfbuf, (SecSize>0x200)?SecSize:0x200, (0xc00/SecSize)+BaseOffset,  SecSize));
    insecoffset=0xc00-((0xc00/SecSize)*SecSize);
    boot=(bootsector*)((int)tfbuf+insecoffset);
-  testprint2("\n tfbuf:%x boot:%x  ",(int)tfbuf,(int)boot);
+  testprint("\n tfbuf:%x boot:%x  ",(int)tfbuf,(int)boot);
      newname=name;
  testprint("\nabt to build layout");
 
@@ -176,7 +176,7 @@ int MakeAcornFormat(int         ID,
 //  }
 
 // Write sector(s) with bootblock  out again
-   testprint2("base offset %x at boot sector write, discname %s\n",BaseOffset,(int)newname);
+   testprint("base offset %x at boot sector write, discname %s\n",BaseOffset,(int)newname);
 
 //testsave(tfbuf,0x200);
 
@@ -220,19 +220,19 @@ int MakeAcornFormat(int         ID,
        }
 //     write in first fragment to map out boot area
        boff = fa.idlen;
-  testprint2("\n bytes for base %x, boff %x ",(int)(boff*(1<<fa.log2bpmb)),boff);
+  testprint("\n bytes for base %x, boff %x ",(int)(boff*(1<<fa.log2bpmb)),boff);
        while((boff*(1<<fa.log2bpmb))<0xe00)boff++;      // ensure boot sector mapped out
-  testprint1("\n boff %x ",(int)(boff));
+  testprint("\n boff %x ",(int)(boff));
        if((1<<fa.log2bpmb)<SecSize)
        {                                                // ensure we point to highest subsec alloc unit
          boff++;
          while(((boff*(1<<fa.log2bpmb))%SecSize)>0)boff++;// ensure integer sector count for this
          boff--;
        }
-  testprint1("\n boff %x ",(int)(boff));
+  testprint("\n boff %x ",(int)(boff));
        i=(1<<(boff));                                   // mark last unit used
        i+=2;                                            // add in ID
-  testprint1("\nmarking bit: %x ",(int)i);
+  testprint("\nmarking bit: %x ",(int)i);
        map[64+base] = (char)i;
        map[65+base] = (char)(i>>8);
        map[66+base] = (char)(i>>16);
@@ -240,7 +240,7 @@ int MakeAcornFormat(int         ID,
 //     write in freelink
        skew = (int)map[1+base] + ((((int)map[2+base])*0x100)&0x7f00);
        skew += (60*8)+boff+1;                           // first free alloc unit after
-  testprint1("\nskew: %x ",(int)skew);
+  testprint("\nskew: %x ",(int)skew);
        map[1+base] = (char)skew;
        map[2+base] = (char)(skew>>8) + (0x80);
        map[3+base] = (fa.zonecount&1)?0xff:0x00; // ensure EOR of all Zonechecks -> 0xff
@@ -253,7 +253,7 @@ int MakeAcornFormat(int         ID,
 
 //       compute bit offset & skew of frag start
          i = 0x18;//(int)map[1+base] + ((int)map[2+base])<<8;
- testprint2("root zone offset %x.. starting freelink at %x\n",k*SecSize,i);
+ testprint("root zone offset %x.. starting freelink at %x\n",k*SecSize,i);
          fragwrite((char*)(map+base), i, 0x201, fa.mapbits,fa.idlen+1);
 
          i += (fa.mapbits);
@@ -264,7 +264,7 @@ int MakeAcornFormat(int         ID,
          }
          map[1+base] = (char)i;
          map[2+base] = ((char)(i>>8))+ 0x80;
- testprint1("setting freelink to %x\nrootdirzone\n",i);
+ testprint("setting freelink to %x\nrootdirzone\n",i);
        }
      }
 //   compute bit offset & skew of free space end (so as to terminate zone)
@@ -272,7 +272,7 @@ int MakeAcornFormat(int         ID,
      skew+= ((k==0)?((fa.fragmentzone0*(fa.idlen+1))+(60*8)):
               (k == fa.zonecount-1)?(fa.endzonebits):
                 (fa.fragmentzonenorm*(fa.idlen+1)));
-//testprint1("Sk:%x ",skew);
+//testprint("Sk:%x ",skew);
 //   terminate zone
      map[(skew/8)+base+1] |= 1<<(skew%8);
 //   start zonespare fragment
@@ -283,7 +283,7 @@ int MakeAcornFormat(int         ID,
 // Write out Zone map & copy
    wimp_error( SecWrite(ID, AccessKey, map, SecSize*fa.zonecount, fa.mapbase+BaseOffset,  SecSize));
    wimp_error( SecWrite(ID, AccessKey, map, SecSize*fa.zonecount, fa.mapbase+fa.zonecount+BaseOffset,  SecSize));
- testprint2 ("End of map at %x\n rootdir at %x\n",fa.mapbase+fa.zonecount+fa.zonecount+BaseOffset,fa.mapbase+fa.rootdiradd+BaseOffset);
+ testprint ("End of map at %x\n rootdir at %x\n",fa.mapbase+fa.zonecount+fa.zonecount+BaseOffset,fa.mapbase+fa.rootdiradd+BaseOffset);
  testsave ("map",(char*)(map),SecSize*fa.zonecount);
    if(map != NULL) free(map);
    if(tfbuf != NULL) free(tfbuf);
@@ -392,7 +392,7 @@ int MakeAcornFormat(int         ID,
      map[0x800-1] = (unsigned char)i;
    }
 // write out root dir
- testprint1("rootdiradd=%x\n",fa.mapbase+fa.rootdiradd+BaseOffset);
+ testprint("rootdiradd=%x\n",fa.mapbase+fa.rootdiradd+BaseOffset);
 // testsave (map,0x800);
    wimp_error( SecWrite(ID, AccessKey, map, 0x800, fa.mapbase+fa.rootdiradd+BaseOffset,  SecSize));
    if(map != NULL) free(map);
@@ -453,7 +453,7 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
     if(zonec< MaxZones-1)
     {
       zonec++;
-   //testprint1("zc:%x ",zonec);
+   //testprint("zc:%x ",zonec);
     }
     else
     {
@@ -461,7 +461,7 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
       if((fmt->idlen<idmaxlen))
       {
         fmt->idlen+=1;
-    //testprint1("\nidl:%x ",fmt->idlen);
+    //testprint("\nidl:%x ",fmt->idlen);
       }
       else
       {
@@ -475,7 +475,7 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
         else
         {
           fmt->log2bpmb+=1;                // increase allocation length
-   testprint1("\nl2bmb:%x ",fmt->log2bpmb);
+   testprint("\nl2bmb:%x ",fmt->log2bpmb);
         }
       }
     }
@@ -489,9 +489,9 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
   fmt->rootaddress = fmt->newrootaddress;
   ComputeAcornLayout(fmt);
   reportfmt(fmt);
-// testprint2("\n Z0cap %x Zcap %x",zone0cap,zonecap);
+// testprint("\n Z0cap %x Zcap %x",zone0cap,zonecap);
 // ensure zonespare value is integer sector count
-  testprint2("\nbefore: zs %x endzs %x",(int)fmt->zonespare,(int)fmt->endzonebits);
+  testprint("\nbefore: zs %x endzs %x",(int)fmt->zonespare,(int)fmt->endzonebits);
   return 0;
 }
 
@@ -768,6 +768,6 @@ void ComputeAcornLayout(FormatArray* fmt)
 //     fmt->cyls=fmt->cyls/fmt->spt;
 //
 //   } while((fmt->cyls>65535)&&(fmt->heads>255));
-//   testprint3("heads %d, cyls %d, secs %d\n",fmt->heads,fmt->cyls,fmt->spt);
+//   testprint("heads %d, cyls %d, secs %d\n",fmt->heads,fmt->cyls,fmt->spt);
 
 }

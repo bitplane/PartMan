@@ -52,117 +52,65 @@ void testsave (char* title, char * data, int size)
   }
 }
 // print item to disc appended to end of testfile
-void testprint (char * data)
+void testprint (char * fmt, ...)
 {
   FILE * fp;
+  va_list arg;
+  va_start (arg,fmt);
   if((fp = fopen( debugfile,"ab")) != NULL)
   {
-    fprintf(fp,data);
+    vfprintf(fp,fmt,arg);
     fclose(fp);
   }
-}
-// print item to disc appended to end of testfile
-void testprint1 (char * data, int format)
-{
-  FILE * fp;
-  if((fp = fopen( debugfile,"ab")) != NULL)
-  {
-    fprintf(fp,data,format);
-    fclose(fp);
-  }
-}
-void testprint2 (char * data, int format, int a1)
-{
-  FILE * fp;
-  if((fp = fopen( debugfile,"ab")) != NULL)
-  {
-    fprintf(fp,data,format, a1);
-    fclose(fp);
-  }
-}
-void testprint3 (char * data, int format, int a1, int a2)
-{
-  FILE * fp;
-  if((fp = fopen( debugfile,"ab")) != NULL)
-  {
-    fprintf(fp,data,format, a1,a2);
-    fclose(fp);
-  }
-}
-void testprint4 (char * data, int format, int a1, int a2, int a3)
-{
-  FILE * fp;
-  if((fp = fopen( debugfile,"ab")) != NULL)
-  {
-    fprintf(fp,data,format, a1,a2,a3);
-    fclose(fp);
-  }
-}
-void testprint5 (char * data, int format, int a1, int a2, int a3, int a4)
-{
-  FILE * fp;
-  if((fp = fopen( debugfile,"ab")) != NULL)
-  {
-    fprintf(fp,data,format, a1,a2,a3,a4);
-    fclose(fp);
-  }
-}
-void testprint6 (char * data, int format, int a1, int a2, int a3, int a4, int a5)
-{
-  FILE * fp;
-  if((fp = fopen( debugfile,"ab")) != NULL)
-  {
-    fprintf(fp,data,format, a1,a2,a3,a4,a5);
-    fclose(fp);
-  }
+  va_end(arg);
 }
 void testprintGUID (char * ptr)
 {
-  testprint4(" %02x%02x%02x%02x-",ptr[3],ptr[2],ptr[1],ptr[0]);
-  testprint2("%02x%02x-",ptr[5],ptr[4]);
-  testprint2("%02x%02x-",ptr[7],ptr[6]);
-  testprint2("%02x%02x-",ptr[8],ptr[9]);
-  testprint3("%02x%02x%02x",ptr[10],ptr[11],ptr[12]);
-  testprint3("%02x%02x%02x ",ptr[13],ptr[14],ptr[15]);
+  testprint(" %02x%02x%02x%02x-",ptr[3],ptr[2],ptr[1],ptr[0]);
+  testprint("%02x%02x-",ptr[5],ptr[4]);
+  testprint("%02x%02x-",ptr[7],ptr[6]);
+  testprint("%02x%02x-",ptr[8],ptr[9]);
+  testprint("%02x%02x%02x",ptr[10],ptr[11],ptr[12]);
+  testprint("%02x%02x%02x ",ptr[13],ptr[14],ptr[15]);
 }
 void reportfmt(FormatArray* fmt)
 {
 
-  testprint1("\nfmt->log2secsize %x",fmt->log2secsize);
-  testprint1("\nfmt->idlen       %d",fmt->idlen);
-  testprint1("\nfmt->log2bpmb    %x",fmt->log2bpmb );
-  testprint1("\n     (LFAU)      %x",1<<fmt->log2bpmb );
-  testprint1("\nfmt->zonecount   %d",fmt->zonecount);
-  testprint1("\nfmt->zonecount2  %x",fmt->zonecount2);
-  testprint1("\nfmt->bigdisc     %x",fmt->bigdisc);
-  testprint1("\nfmt->bigdir      %x",fmt->bigdir);
-  testprint1("\nfmt->zonespare   %d",fmt->zonespare);
-  testprint1("\nfmt->SecSize     %d",fmt->SecSize);
-  testprint1("\nfmt->SecCount    %x",fmt->SecCount);
-  testprint1("\nfmt->endzonebits %x",fmt->endzonebits);
-  testprint1("\nfmt->rootaddress %x",fmt->rootaddress);
-  testprint1("\nfmt->rootdiradd  %x",fmt->rootdiradd);
-  testprint1("\nfmt->newrootaddr %x",fmt->newrootaddress);
-  testprint1("\nfmt->mapbase     %x",fmt->mapbase);
-  testprint1("\nfmt->discsize    %x",fmt->discsize);
-  testprint1("\nfmt->discsizehi  %x",fmt->discsizehi);
-  testprint1("\nfmt->sharesize   %d",fmt->sharesize);
-  testprint1("\nfmt->newshsize   %x",fmt->newsharesize);
-  testprint1("\nfmt->mapbits     %x",fmt->mapbits);
-  testprint1("\nfmt->dirbits     %x",fmt->dirbits);
-  testprint1("\nfmt->bootsecbits %x",fmt->bootsecbits);
-  testprint1("\nfmt->fragcount   %x",fmt->fragmentcount);
-  testprint1("\nfmt->fragmissed  %x",fmt->fragmentmissed);
-  testprint1("\nfmt->fragsZ0     %x",fmt->fragmentzone0);
-  testprint1("\nfmt->fragsZnorm  %x",fmt->fragmentzonenorm);
-  testprint1("\nfmt->fragsZlast  %x",fmt->fragmentzonelast);
-  testprint1("\nfmt->z0sparefnd  %x",fmt->zone0sparefound);
-  testprint1("\nfmt->zsparefnd   %x",fmt->zonesparefound);
-  testprint1("\nfmt->cyls        %d",fmt->cyls);
-  testprint1("\nfmt->spt         %d",fmt->spt);
-  testprint1("\nfmt->heads       %d",fmt->heads);
-  testprint1("\nfmt->density     %x",fmt->density);
-  testprint1("\nfmt->skew        %x",fmt->skew);
+  testprint("\nfmt->log2secsize %x",fmt->log2secsize);
+  testprint("\nfmt->idlen       %d",fmt->idlen);
+  testprint("\nfmt->log2bpmb    %x",fmt->log2bpmb );
+  testprint("\n     (LFAU)      %x",1<<fmt->log2bpmb );
+  testprint("\nfmt->zonecount   %d",fmt->zonecount);
+  testprint("\nfmt->zonecount2  %x",fmt->zonecount2);
+  testprint("\nfmt->bigdisc     %x",fmt->bigdisc);
+  testprint("\nfmt->bigdir      %x",fmt->bigdir);
+  testprint("\nfmt->zonespare   %d",fmt->zonespare);
+  testprint("\nfmt->SecSize     %d",fmt->SecSize);
+  testprint("\nfmt->SecCount    %x",fmt->SecCount);
+  testprint("\nfmt->endzonebits %x",fmt->endzonebits);
+  testprint("\nfmt->rootaddress %x",fmt->rootaddress);
+  testprint("\nfmt->rootdiradd  %x",fmt->rootdiradd);
+  testprint("\nfmt->newrootaddr %x",fmt->newrootaddress);
+  testprint("\nfmt->mapbase     %x",fmt->mapbase);
+  testprint("\nfmt->discsize    %x",fmt->discsize);
+  testprint("\nfmt->discsizehi  %x",fmt->discsizehi);
+  testprint("\nfmt->sharesize   %d",fmt->sharesize);
+  testprint("\nfmt->newshsize   %x",fmt->newsharesize);
+  testprint("\nfmt->mapbits     %x",fmt->mapbits);
+  testprint("\nfmt->dirbits     %x",fmt->dirbits);
+  testprint("\nfmt->bootsecbits %x",fmt->bootsecbits);
+  testprint("\nfmt->fragcount   %x",fmt->fragmentcount);
+  testprint("\nfmt->fragmissed  %x",fmt->fragmentmissed);
+  testprint("\nfmt->fragsZ0     %x",fmt->fragmentzone0);
+  testprint("\nfmt->fragsZnorm  %x",fmt->fragmentzonenorm);
+  testprint("\nfmt->fragsZlast  %x",fmt->fragmentzonelast);
+  testprint("\nfmt->z0sparefnd  %x",fmt->zone0sparefound);
+  testprint("\nfmt->zsparefnd   %x",fmt->zonesparefound);
+  testprint("\nfmt->cyls        %d",fmt->cyls);
+  testprint("\nfmt->spt         %d",fmt->spt);
+  testprint("\nfmt->heads       %d",fmt->heads);
+  testprint("\nfmt->density     %x",fmt->density);
+  testprint("\nfmt->skew        %x",fmt->skew);
 
 }
 
@@ -174,13 +122,7 @@ void reportfmt(FormatArray* fmt)
 
 void testfileinit (void){}
 void testsave (char* title, char * data, int size){_UU(title);_UU(data);_UU(size); }
-void testprint (char * data){_UU(data);}
-void testprint1 (char * data,  int a1){_UU(data);_UU(a1);}
-void testprint2 (char * data,  int a1,int a2){_UU(data);_UU(a1);_UU(a2);}
-void testprint3 (char * data,  int a1, int a2,int a3){_UU(data);_UU(a1);_UU(a2);_UU(a3);}
-void testprint4 (char * data,  int a1, int a2,int a3,int a4){_UU(data);_UU(a1);_UU(a2);_UU(a3);_UU(a4);}
-void testprint5 (char * data,  int a1, int a2,int a3,int a4,int a5) {_UU(data);_UU(a1);_UU(a2);_UU(a3);_UU(a4);_UU(a5);}
-void testprint6 (char * data,  int a1, int a2,int a3,int a4,int a5,int a6){_UU(data);_UU(a1);_UU(a2);_UU(a3);_UU(a4);_UU(a5);_UU(a6);}
+void testprint (char * data, ...){_UU(data);}
 void reportfmt(FormatArray* fmt){_UU(fmt);}
 void testprintGUID (char * ptr) {_UU(ptr);}
 

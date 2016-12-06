@@ -76,21 +76,21 @@ CDB_Inquiry
         EXPORT  asm_ReadCapacity
 ; Do a SCSI ReadCapacity command
 ; on entry r0 = SCSI ID, r1 -> 8 byte buffer
-; on exit if r0 = NULL then r2 filled in
+; on exit if r0 = NULL then buffer filled in
 ; if error r0 -> error block
-; timeout is 1 second
+; timeout is .75 second
 asm_ReadCapacity
-        Push   "r1-r5,r8,lr"
+        Push   "r1-r8,lr"
         MOV     R3, R1
         ORR     R0, R0, #&01000000
         MOV     R1, #10
         ADR     R2, CDB_ReadCapacity
         MOV     R4, #8
-        MOV     R5, #100
+        MOV     R5, #75
         MOV     R8, #&fc000003          ; magic access key
         SWI     XSCSI_Op
         MOVVC   r0, #0
-        Pull    "r1-r5,r8,pc"
+        Pull    "r1-r8,pc"
 CDB_ReadCapacity
         DCB     &25                     ; ReadCapacity
         DCB     0

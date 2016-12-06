@@ -14,18 +14,14 @@
  */
 #ifndef DIAGNOSTIC_H
 #define DIAGNOSTIC_H
-//#define Debug TRUE
+//#define Debug 1
+#ifndef Debug
 #define Debug FALSE
+#endif
 
 void testfileinit (void);
 void testsave (char * title, char * data, int size);
-void testprint (char * data);
-void testprint1 (char * data,  int a1);
-void testprint2 (char * data,  int a1,int a2);
-void testprint3 (char * data,  int a1,int a2,int a3);
-void testprint4 (char * data,  int a1,int a2,int a3,int a4);
-void testprint5 (char * data,  int a1,int a2,int a3,int a4,int a5);
-void testprint6 (char * data,  int a1,int a2,int a3,int a4,int a5,int a6);
+void testprint (char * data, ...);
 void testprintGUID (char * ptr);
 
 void reportfmt(FormatArray * fmt);

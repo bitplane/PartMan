@@ -29,5 +29,6 @@ _kernel_oserror *asm_callcallback(void (*code)(void),
 void asm_callbackhandler(void);
 void asm_driver_callback(void);
 
-_kernel_oserror *asm_Inquiry(int ID, void *inquiry_buf);
-_kernel_oserror *asm_ReadCapacity(int ID, void *CapacityBuf);
+_kernel_oserror *asm_Inquiry(int ID, volatile void *inquiry_buf);
+_kernel_oserror *asm_ReadCapacity(int ID, volatile void *CapacityBuf);
+

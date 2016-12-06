@@ -116,7 +116,7 @@ int main (int argc,char* argv[])
 
  int result;
  result=PartitionDisc(ID, MaxPartitions, partcount, partn);
- testprint1("result = %d\n",result);
+ testprint("result = %d\n",result);
 
  if(CheckGPTValid(ID))
  {
@@ -145,7 +145,7 @@ void wimp_error(_kernel_oserror *er)
 
   if(er!=(_kernel_oserror *)NULL)
   {
-  testprint2("WE:%x %s\n",er->errnum,(int)(er->errmess));
+  testprint("WE:%x %s\n",er->errnum,(int)(er->errmess));
    reg.r[0] = (int) er;
    reg.r[1] =       0;
    reg.r[2] = (int) task_name;

@@ -47,9 +47,9 @@ void printGUIDpart(GUIDPartn *  gp)
 {
   testprint("type:    ");testprintGUID((char*)(gp->PTypeGUID));
   testprint("\nuniq:    ");testprintGUID((char*)(gp->PUniqGUID));
-  testprint2("\nStartLBA: %08x%08x\n",gp->StartLBA[1],gp->StartLBA[0]);
-  testprint2("EndLBA:   %08x%08x\n",gp->EndLBA[1],gp->EndLBA[0]);
-  testprint2("Attrib:   %08x%08x\n",gp->Attributes[1],gp->Attributes[0]);
+  testprint("\nStartLBA: %08x%08x\n",gp->StartLBA[1],gp->StartLBA[0]);
+  testprint("EndLBA:   %08x%08x\n",gp->EndLBA[1],gp->EndLBA[0]);
+  testprint("Attrib:   %08x%08x\n",gp->Attributes[1],gp->Attributes[0]);
   char *ch = gp->Name;
   testprint("Name:     ");
   while (*ch)
@@ -70,13 +70,13 @@ void printUTF16LEname(char* name, char* buffer, int maxchars)
 }
 void printLegacyPartition(PartitionRecord *  partn)
 {
-      testprint2("buffer addr %x, p1 addr %x\n",(int)mbrp,(int)partn);
-      testprint1("boot        %02x\n",partn->boot);
-      testprint1("StartCHS    %06x\n",partn->StartC+(partn->StartH<<8)+(partn->StartS<<16));
-      testprint1("OStype      %02x\n",partn->OSType);
-      testprint1("EndCHS      %06x\n",partn->EndC+(partn->EndH<<8)+(partn->EndS<<16));
-      testprint1("StartLBA    %08x\n",partn->StartLBA[0]+(partn->StartLBA[1]<<8)+(partn->StartLBA[2]<<16)+(partn->StartLBA[3]<<24));
-      testprint1("SizeLBA     %08x\n\n",partn->SizeLBA[0]+(partn->SizeLBA[1]<<8)+(partn->SizeLBA[2]<<16)+(partn->SizeLBA[03]<<24));
+      testprint("buffer addr %x, p1 addr %x\n",(int)mbrp,(int)partn);
+      testprint("boot        %02x\n",partn->boot);
+      testprint("StartCHS    %06x\n",partn->StartC+(partn->StartH<<8)+(partn->StartS<<16));
+      testprint("OStype      %02x\n",partn->OSType);
+      testprint("EndCHS      %06x\n",partn->EndC+(partn->EndH<<8)+(partn->EndS<<16));
+      testprint("StartLBA    %08x\n",partn->StartLBA[0]+(partn->StartLBA[1]<<8)+(partn->StartLBA[2]<<16)+(partn->StartLBA[3]<<24));
+      testprint("SizeLBA     %08x\n\n",partn->SizeLBA[0]+(partn->SizeLBA[1]<<8)+(partn->SizeLBA[2]<<16)+(partn->SizeLBA[03]<<24));
 }
 
 void printPartitionHeader(GPTHeader* altg)
@@ -88,21 +88,21 @@ void printPartitionHeader(GPTHeader* altg)
         testprint("CRC32 of  partition header is bad\n");
       }
       altg->HeaderCRC32=tmp1;
-      testprint1("buffer addr %x\n",(int)altg);
-      testprint1("Sign        %08s\n",(int)(altg->Sign));
-      testprint1("Revisn      %08x\n",altg->Revisn);
-      testprint1("HeaderSize  %08x\n",altg->HeaderSize);
-      testprint1("HeaderCRC   %08x\n",altg->HeaderCRC32);
-      testprint2("MyLBA       %08x%08x\n",altg->MyLBA[1],altg->MyLBA[0]);
-      testprint2("AltLBA      %08x%08x\n",altg->AltLBA[1],altg->AltLBA[0]);
-      testprint2("OkLBAstrt   %08x%08x\n",altg->FirstOKLBA[1],altg->FirstOKLBA[0]);
-      testprint2("OkLBAend    %08x%08x\n",altg->LastOKLBA[1],altg->LastOKLBA[0]);
+      testprint("buffer addr %x\n",(int)altg);
+      testprint("Sign        %08s\n",(int)(altg->Sign));
+      testprint("Revisn      %08x\n",altg->Revisn);
+      testprint("HeaderSize  %08x\n",altg->HeaderSize);
+      testprint("HeaderCRC   %08x\n",altg->HeaderCRC32);
+      testprint("MyLBA       %08x%08x\n",altg->MyLBA[1],altg->MyLBA[0]);
+      testprint("AltLBA      %08x%08x\n",altg->AltLBA[1],altg->AltLBA[0]);
+      testprint("OkLBAstrt   %08x%08x\n",altg->FirstOKLBA[1],altg->FirstOKLBA[0]);
+      testprint("OkLBAend    %08x%08x\n",altg->LastOKLBA[1],altg->LastOKLBA[0]);
       testprint("DiscGUID   ");
       testprintGUID((char*)(altg->DiscGUID));
-      testprint2("\nGUIDPstrt   %08x%08x\n",altg->GUIDPArray[1],altg->GUIDPArray[0]);
-      testprint1("GUIDPcount  %08x\n",altg->GUIDPnum);
-      testprint1("GUIDPsize   %08x\n",altg->GUIDPsize);
-      testprint1("GUIDPCRC    %08x\n\n",altg->GUIDPArrayCRC);
+      testprint("\nGUIDPstrt   %08x%08x\n",altg->GUIDPArray[1],altg->GUIDPArray[0]);
+      testprint("GUIDPcount  %08x\n",altg->GUIDPnum);
+      testprint("GUIDPsize   %08x\n",altg->GUIDPsize);
+      testprint("GUIDPCRC    %08x\n\n",altg->GUIDPArrayCRC);
 }
 
 // free the pointers set up by CheckGPTValid()
@@ -127,9 +127,12 @@ void freepointers(void)
 //
 bool CheckGPTValid(int device)
 {
+  testprint("cgptv %d\n",device);
   ReadDiscCapacity(device,OverrideKey,&DiscMaxLBA,&DiscSectorSize);
-  if(DiscSectorSize==0){testprint1(" dss=0 dev %d\n",device);return(false);}
-  testprint1(" dss><0 dev %d\n",device);
+    testprint("cgptv rdc done \n");
+  testprint(" dss><0 dev %d\n",device);
+  if(DiscSectorSize==0){testprint(" dss=0 dev %d\n",device);return(false);}
+  testprint(" dss><0 dev %d\n",device);
   if(mbrp=calloc(1,sizeof(struct ProtectiveMBR)),mbrp)
   {
     err=SecRead(device,OverrideKey,mbrp,sizeof(struct ProtectiveMBR),0,DiscSectorSize);
@@ -166,7 +169,7 @@ bool CheckGPTValid(int device)
         {
           int tmp = gpth->HeaderCRC32;
           gpth->HeaderCRC32=0;
- //         testprint2(" gpth %x hs %x\n",(int)gpth,gpth->HeaderSize);
+ //         testprint(" gpth %x hs %x\n",(int)gpth,gpth->HeaderSize);
           if (tmp!=crc32((unsigned char*)gpth,(gpth->HeaderSize)))
           {
             freepointers(); return false;
@@ -321,7 +324,7 @@ case GUIDUnknown:
 //           partn[]   = array of partcount partition sizes (LBA)
 int PartitionDisc(int device, int numpart, int partcount, int partn[])
 {
-//  testprint3("creating dev:%d maxpart:%d with %d used\n",device,numpart,partcount);
+//  testprint("creating dev:%d maxpart:%d with %d used\n",device,numpart,partcount);
   if(device==0){testprint(" not allowed to touch scsi id 0\n");return 1;}
 //  ProtectiveMBR* sec0=0;
   GPTHeader* sec1=0;
@@ -337,10 +340,10 @@ int PartitionDisc(int device, int numpart, int partcount, int partn[])
   // use calloc() a we need to clear unused space
   sec1=calloc(1,GPTHdrSize(sectorsize));
   tmp =(sizeof(struct GUIDPartn)*numpart);
-  testprint2("partn table size %x gp %x\n",tmp,sizeof(struct GPTHeader));
+  testprint("partn table size %x gp %x\n",tmp,sizeof(struct GPTHeader));
   gptseccount=(tmp/sectorsize);
   if(tmp%sectorsize) gptseccount++;
-  testprint1("claiming %d secs for partn table\n",gptseccount);
+  testprint("claiming %d secs for partn table\n",gptseccount);
   gpt =calloc(tmp,sizeof(struct GUIDPartn));
   if(!(gpt||sec1/*||sec0*/))
   {
@@ -390,7 +393,7 @@ int PartitionDisc(int device, int numpart, int partcount, int partn[])
   {
     if(GUIDValid((char*)(myGP->PTypeGUID)))
     {
-       testprint1("Partn:    %d\n",i);
+       testprint("Partn:    %d\n",i);
        printGUIDpart(myGP);
     }
     myGP++;
@@ -422,8 +425,8 @@ int PartitionDisc(int device, int numpart, int partcount, int partn[])
 // uses pointers set up by CheckGPTValid()
 void ReadGPTInfo(int device)
 {
-  testprint1("ReadGPTInfo devid:%d\n",device);
-  testprint2("Device Max LBA %08x - SectorSize %08x \n\n",DiscMaxLBA,DiscSectorSize);
+  testprint("ReadGPTInfo devid:%d\n",device);
+  testprint("Device Max LBA %08x - SectorSize %08x \n\n",DiscMaxLBA,DiscSectorSize);
   printLegacyPartition((PartitionRecord *)&mbrp->Partition1);
   printLegacyPartition((PartitionRecord *)&mbrp->Partition2);
   printLegacyPartition((PartitionRecord *)&mbrp->Partition3);
@@ -443,7 +446,7 @@ void ReadGPTInfo(int device)
   {
     if(GUIDValid((char*)(myGP->PTypeGUID)))
     {
-       testprint1("Partn:    %d\n",i);
+       testprint("Partn:    %d\n",i);
        printGUIDpart(myGP);
     }
     myGP++;
@@ -498,7 +501,7 @@ void WriteDosBootSector(int device, int numpart, PartitionRecord *newpr, int dis
     {
       for (int i=1; i<numpart; i++)
       {
-        testprint2(" copy in partn %d from %x\n",i ,(int)newpr);
+        testprint(" copy in partn %d from %x\n",i ,(int)newpr);
         newpr++;
       }
     }

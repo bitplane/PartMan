@@ -25,7 +25,7 @@ extern _kernel_oserror  err;
 
 _kernel_oserror * FormatPartition( int ID, FormatParamsp FP, int sectorsize)
 {
-testprint3("FormatPartition ID:%x partn:%d name:%s\n",ID,FP->partition,(int)FP->discname);
+testprint("FormatPartition ID:%x partn:%d name:%s\n",ID,FP->partition,(int)FP->discname);
 // first read the partition spec
   GUIDPartn* myGP = ReturnGPTPartionInfo ( ID, FP->partition);
   if(myGP)
