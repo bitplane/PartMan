@@ -76,19 +76,7 @@ int MakeAcornFormat(int         ID,
    // suggest a head/cylinder/lfau setup
    CHSRound(fa.cyls,fa.heads,fa.spt,fa.SecCount);
 
-//   do
-//   {
-//     heads++;
-//     cyls=discsize/heads;
-//     secs=63;
-//     while(cyls%secs) secs--;
-//     cyls=cyls/secs;
-//
-//   } while((cyls>65535)&&(heads>255));
    testprint(" suggested heads %d, cyls %d, secs %d giving disk size %x\n",fa.heads,fa.cyls,fa.spt,fa.SecCount);
-
-
-
 
 #if Debug
  map = calloc(1024,1);
@@ -183,7 +171,7 @@ int MakeAcornFormat(int         ID,
    wimp_error( SecWrite(ID, AccessKey, tfbuf, (SecSize>0x200)?SecSize:0x200, (0xc00/SecSize)+BaseOffset,  SecSize));
 
 // get space for building map
-   if((map = (char*)calloc((SecSize*fa.zonecount),1))== NULL)
+   if((map = (char*)calloc((SecSize*fa.zonec),1))== NULL)
    {
      if(tfbuf != NULL) free(tfbuf);
      return(-1);
@@ -193,7 +181,7 @@ int MakeAcornFormat(int         ID,
 // Create zone maps
    base=0;
    zonestart = zoneend = 0;
-   for(k=0; k<fa.zonecount;k++)
+   for(k=0; k<fa.zonec;k++)
    {
 //   init freelink pointer
      map[1+base] = 0x18;    // pointer past byte 1 to first free bit in zone
@@ -243,11 +231,11 @@ int MakeAcornFormat(int         ID,
   testprint("\nskew: %x ",(int)skew);
        map[1+base] = (char)skew;
        map[2+base] = (char)(skew>>8) + (0x80);
-       map[3+base] = (fa.zonecount&1)?0xff:0x00; // ensure EOR of all Zonechecks -> 0xff
+       map[3+base] = (fa.zonec&1)?0xff:0x00; // ensure EOR of all Zonechecks -> 0xff
      }
      else
      {
-       if((k == fa.zonecount/2))    // write map adding in root dir allocation
+       if((k == fa.zonec/2))    // write map adding in root dir allocation
        {
 //       mark as used fragments for map and root dir
 
@@ -270,9 +258,9 @@ int MakeAcornFormat(int         ID,
 //   compute bit offset & skew of free space end (so as to terminate zone)
      skew = 0x18-1;
      skew+= ((k==0)?((fa.fragmentzone0*(fa.idlen+1))+(60*8)):
-              (k == fa.zonecount-1)?(fa.endzonebits):
+              (k == fa.zonec-1)?(fa.endzonebits):
                 (fa.fragmentzonenorm*(fa.idlen+1)));
-//testprint("Sk:%x ",skew);
+//   testprint("Sk:%x %x",skew,k);
 //   terminate zone
      map[(skew/8)+base+1] |= 1<<(skew%8);
 //   start zonespare fragment
@@ -281,15 +269,15 @@ int MakeAcornFormat(int         ID,
      base+=SecSize;
    }
 // Write out Zone map & copy
-   wimp_error( SecWrite(ID, AccessKey, map, SecSize*fa.zonecount, fa.mapbase+BaseOffset,  SecSize));
-   wimp_error( SecWrite(ID, AccessKey, map, SecSize*fa.zonecount, fa.mapbase+fa.zonecount+BaseOffset,  SecSize));
- testprint ("End of map at %x\n rootdir at %x\n",fa.mapbase+fa.zonecount+fa.zonecount+BaseOffset,fa.mapbase+fa.rootdiradd+BaseOffset);
- testsave ("map",(char*)(map),SecSize*fa.zonecount);
-   if(map != NULL) free(map);
-   if(tfbuf != NULL) free(tfbuf);
+   wimp_error( SecWrite(ID, AccessKey, map, SecSize*fa.zonec, fa.mapbase+BaseOffset,  SecSize));
+   wimp_error( SecWrite(ID, AccessKey, map, SecSize*fa.zonec, fa.mapbase+fa.zonec+BaseOffset,  SecSize));
+ testprint ("End of map at %x\n rootdir at %x\n",fa.mapbase+fa.zonec+fa.zonec+BaseOffset,fa.mapbase+fa.rootdiradd+BaseOffset);
+ testsave ("map",(char*)(map),SecSize*fa.zonec);
+   if(map) free(map);
+   if(tfbuf) free(tfbuf);
 
 // get space for building rootdir
-   if((map = (char*)calloc(0x800,1))== NULL)
+   if(map = (char*)calloc(0x800,1),!map)
    {
      return(-1);
    }
@@ -395,7 +383,7 @@ int MakeAcornFormat(int         ID,
  testprint("rootdiradd=%x\n",fa.mapbase+fa.rootdiradd+BaseOffset);
 // testsave (map,0x800);
    wimp_error( SecWrite(ID, AccessKey, map, 0x800, fa.mapbase+fa.rootdiradd+BaseOffset,  SecSize));
-   if(map != NULL) free(map);
+   if(map) free(map);
 
    return (0);
 }
@@ -406,7 +394,7 @@ int MakeAcornFormat(int         ID,
 // returns -1 if failed, else 0
 int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
 {
-  unsigned int tmp,idmaxlen,MaxFragments,MaxZones,zonec,MinZones;
+  unsigned int tmp,idmaxlen,MaxFragments,MaxZones,MinZones;
   IGNORE(bsec);
 
   MaxZones=(fmt->bigdir>0)?MaxZonesBigDir:MaxZonesNormalDir;
@@ -420,9 +408,9 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
 // initialise variables for iteration (only know SecSize & SecCount so far)
   fmt->log2secsize = 1;while((1<<fmt->log2secsize)<fmt->SecSize)fmt->log2secsize++;
   fmt->idlen = fmt->log2secsize+3;      // min allocation
-  fmt->zonecount = MinZones;   		//  minzones!!
-  fmt->zonecount2= MinZones>>8;   	//  minzones!!
-  zonec=fmt->zonecount+(fmt->zonecount2<<8);
+  fmt->zonec=MinZones;
+  fmt->zonecount = fmt->zonec;   		//  minzones!!
+  fmt->zonecount2= fmt->zonec>>8;   	//  minzones!!
   fmt->zonespare   = 0;
   fmt->rootaddress = 0;
   fmt->log2bpmb    = fmt->log2secsize+3; // ensure min granularity OK
@@ -438,7 +426,7 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
 
 // cycle round till everything fits..
   while(0
-     || (fmt->fragmentcount<=(zonec*8))              // too many zones
+     || (fmt->fragmentcount<=(fmt->zonec*8))              // too many zones
      || (((fmt->idlen+1)*(1<<fmt->log2bpmb))>(254*(1<<(fmt->sharesize+fmt->log2secsize))))
      || (fmt->fragmentcount>((1<<fmt->idlen)-1))     // idlen too small for
                                                      // total fragments
@@ -450,14 +438,14 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
     // first try upping the Zonecount
     // if that wont work, then try again on next idlen up...
     // if that wont work, then try again on next alloc size up...
-    if(zonec< MaxZones-1)
+    if(fmt->zonec< MaxZones-1)
     {
-      zonec++;
-   //testprint("zc:%x ",zonec);
+      fmt->zonec++;
+   //testprint("zc:%x ",fmt->zonec);
     }
     else
     {
-      zonec=MinZones; // reset zonecount
+      fmt->zonec=MinZones; // reset zonecount
       if((fmt->idlen<idmaxlen))
       {
         fmt->idlen+=1;
@@ -479,19 +467,20 @@ int BuildAcornLayout(FormatArray* fmt,bootsector* bsec)
         }
       }
     }
-    fmt->zonecount=zonec;
-    fmt->zonecount2=zonec>>8;
+    fmt->zonecount=fmt->zonec;
+    fmt->zonecount2=fmt->zonec>>8;
     ComputeAcornLayout(fmt);
     fmt->sharesize=fmt->newsharesize;
   }
+  fmt->zonecount=--fmt->zonec;
+  fmt->zonecount2=fmt->zonec>>8;
 // recalc with resultant figures
   fmt->zonespare =  fmt->zonesparefound;
   fmt->rootaddress = fmt->newrootaddress;
   ComputeAcornLayout(fmt);
   reportfmt(fmt);
-// testprint("\n Z0cap %x Zcap %x",zone0cap,zonecap);
 // ensure zonespare value is integer sector count
-  testprint("\nbefore: zs %x endzs %x",(int)fmt->zonespare,(int)fmt->endzonebits);
+  testprint("\nbefore: zonesparebits %x endzonesparebits %x",(int)fmt->zonespare,(int)fmt->endzonebits);
   return 0;
 }
 
@@ -533,14 +522,13 @@ unsigned char bootvalidbyte ( bootsector* boot)
 
   for(i=0;i < 511; i++)
   {
-    cc=sum += *((char*)boot + i);
-    if(last!=*((char*)boot + i))same=1; // flag that sector is not all ientical
+    cc=sum +=*((char*)boot + i);
+    if(last!=*((char*)boot + i))same=1;// flag that sector is not all ientical
     if(sum>0xff)sum-=0xff;
   }
   if((cc==0) || (same==0))sum++;// fudge to catch an all zero sector
   				// and or an all identical sector
-  return (unsigned char)
-         (sum);
+  return (unsigned char) (sum);
 }
 
 
@@ -620,25 +608,24 @@ _kernel_oserror* ReadAcornPartitionName(int ID,
   return NULL;
 }
 
-
 // compute the format parameters to use from min info held in boot sector
 // no boundary or overflow checking carried out
 void ComputeAcornLayout(FormatArray* fmt)
 {
    int shift,allocunits,zonesectors,dirsectors,sharesize,MaxZones;
 
-   MaxZones=(fmt->bigdir>1)?MaxZonesBigDir:MaxZonesNormalDir;
+   MaxZones=(fmt->bigdir)?MaxZonesBigDir:MaxZonesNormalDir;
 
 // n.b. 4 bytes of zone taken up by the zone header
 // compute fragments for zone 0, + fractional fragment
-   fmt->fragmentzone0 = ((fmt->SecSize-4-60)*8)/(fmt->idlen+1);
-   fmt->zone0sparefound=((fmt->SecSize-4-60)*8)%(fmt->idlen+1);
-   fmt->zone0sparefound+=4*8;
+   fmt->fragmentzone0   = ((fmt->SecSize-4-60)*8)/(fmt->idlen+1);
+   fmt->zone0sparefound = ((fmt->SecSize-4-60)*8)%(fmt->idlen+1);
+   fmt->zone0sparefound+= 4*8;
 
 // compute fragments for normal zone, + fractional fragment
    fmt->fragmentzonenorm = ((fmt->SecSize-4)*8)/(fmt->idlen+1);
-   fmt->zonesparefound=    ((fmt->SecSize-4)*8)%(fmt->idlen+1);
-   fmt->zonesparefound+=4*8;
+   fmt->zonesparefound   = ((fmt->SecSize-4)*8)%(fmt->idlen+1);
+   fmt->zonesparefound  += 4*8;
 
 // correct counts for zonespare value given
    while(fmt->zonesparefound<fmt->zonespare)
@@ -663,32 +650,34 @@ void ComputeAcornLayout(FormatArray* fmt)
      allocunits = fmt->SecCount<<(-shift);
    }
 // compute total possible fragment content of disc
-   fmt->fragmentcount = allocunits/(fmt->idlen+1);
+   fmt->fragmentcount   = allocunits/(fmt->idlen+1);
    fmt->fragmentmissed  = allocunits%(fmt->idlen+1);
 
 // compute lastzone fragment count & bits
-   if(fmt->zonecount==1)
+   if((fmt->zonec)==1)
    {
      fmt->fragmentzonelast = fmt->fragmentcount;
    }
-   if(fmt->zonecount==2)
+   if((fmt->zonec)==2)
    {
      fmt->fragmentzonelast = fmt->fragmentcount
                              -(fmt->fragmentzone0);
    }
-   if(fmt->zonecount>2)
+   if((fmt->zonec)>2)
    {
      fmt->fragmentzonelast = fmt->fragmentcount
                             -fmt->fragmentzone0
-                            -((fmt->zonecount-2)*fmt->fragmentzonenorm);
+                            -(((fmt->zonec)-2)*fmt->fragmentzonenorm);
    }
-   fmt->endzonebits = (fmt->fragmentzonelast * (fmt->idlen+1))+fmt->fragmentmissed;
+   fmt->endzonebits=(fmt->fragmentzonelast*(fmt->idlen+1))+fmt->fragmentmissed;
 
+   //  testprint("ezb %x fzl %x fmm %x \n",fmt->endzonebits,fmt->fragmentzonelast,fmt->fragmentmissed);
 // compute expected mapbase offset
-   fmt->mapbase = (((fmt->zonecount/2)-1) * (fmt->fragmentzonenorm*(fmt->idlen+1)))
-                + (fmt->fragmentzone0*(fmt->idlen+1))
-                + (((fmt->zonecount/2)-1) * (fmt->zonesparefound-fmt->zonespare))
-                + (fmt->zone0sparefound-fmt->zonespare);
+   fmt->mapbase =
+              ((((fmt->zonec)/2)-1)*(fmt->fragmentzonenorm*(fmt->idlen+1)))
+            + (fmt->fragmentzone0*(fmt->idlen+1))
+            + ((((fmt->zonec)/2)-1)*(fmt->zonesparefound-fmt->zonespare))
+            + (fmt->zone0sparefound-fmt->zonespare);
 
    if(shift>=0)  // 1 or more sectors/mapbit
    {
@@ -699,75 +688,57 @@ void ComputeAcornLayout(FormatArray* fmt)
      fmt->mapbase = fmt->mapbase >>(-shift);
    }
 
-// compute number of alloc bits to use for the map & rootdir (root dir = 2048 bytes)
-//  and compute min size to map out at start of disc to protect the boot sector
+// compute number of alloc bits to use for the map & rootdir (root dir = 2048
+//  bytes, and min size to map out at start of disc to protect the boot sector
    fmt->rootdirsize=2048;
    dirsectors = (fmt->SecSize>=fmt->rootdirsize)?1:(fmt->rootdirsize/fmt->SecSize);
-   zonesectors =(fmt->bigdir==0)? dirsectors:0;
-   zonesectors += 2*fmt->zonecount;
+   zonesectors =(fmt->bigdir)? 0:dirsectors;
+   zonesectors += 2*(fmt->zonec);
 
    fmt->bootsecbits = 0xe00/fmt->SecSize;
-   if((0xe00%fmt->SecSize)>0)fmt->bootsecbits +=1;
+   if(0xe00%fmt->SecSize)fmt->bootsecbits +=1;
    if(shift>=0)  // 1 or more sectors/mapbit
    {
      fmt->dirbits = dirsectors >> shift;
      fmt->mapbits = zonesectors >> shift;
      fmt->bootsecbits = fmt->bootsecbits >> shift;
      // round up to integer count above if needed
-     if(shift!=0)if ( (dirsectors%(1<<shift)) !=0)fmt->dirbits++;
-     if(shift!=0)if ((zonesectors%(1<<shift) )!=0)fmt->mapbits++;
+     if(shift!=0)if ( dirsectors%(1<<shift)) fmt->dirbits++;
+     if(shift!=0)if (zonesectors%(1<<shift)) fmt->mapbits++;
    }
    else          // more than 1 mapbits/sector
    {
-     fmt->dirbits = dirsectors << (-shift);
+     fmt->dirbits = dirsectors  << (-shift);
      fmt->mapbits = zonesectors << (-shift);
      fmt->bootsecbits = fmt->bootsecbits << (-shift);
    }
 //  ensure these are at least min length
-   if(fmt->bootsecbits <(fmt->idlen+1))fmt->bootsecbits =(fmt->idlen+1);
+   if(fmt->bootsecbits < (fmt->idlen+1)) fmt->bootsecbits = (fmt->idlen+1);
    if(fmt->mapbits<(fmt->idlen+1)) fmt->mapbits=(fmt->idlen+1);
    if(fmt->dirbits<(fmt->idlen+1)) fmt->dirbits=(fmt->idlen+1);
 
 // compute sharesize
    fmt->newsharesize=0;
-   if((fmt->bigdisc>0)&&(fmt->log2bpmb>12))
-   {
-     fmt->newsharesize=fmt->log2bpmb-12;
-   }
-//   if((fmt->bigdisc>0)&&(fmt->newsharesize<4)&&((fmt->zonecount>>fmt->newsharesize)>MaxZones))fmt->newsharesize++;
+   if((fmt->bigdisc>0)&&(fmt->log2bpmb>12))fmt->newsharesize=fmt->log2bpmb-12;
    sharesize=1<<fmt->newsharesize;
 
 // compute expected root dir disc address
    if(fmt->bigdir==0)
    {
-     fmt->newrootaddress = 0x201 + (((2*fmt->zonecount) + sharesize-1)/sharesize);
-     fmt->rootdiradd=(((2*fmt->zonecount) + sharesize-1)/sharesize)*sharesize;
+     fmt->newrootaddress = 0x201+(((2*(fmt->zonec))+sharesize-1)/sharesize);
+     fmt->rootdiradd=(((2*(fmt->zonec))+sharesize-1)/sharesize)*sharesize;
    }
    else
    {
      // mapzone*ids/zone +1
-
-     fmt->newrootaddress =1+(((fmt->zonecount/2)*fmt->fragmentzonenorm)<<8);
+     fmt->newrootaddress =1+((((fmt->zonec)/2)*fmt->fragmentzonenorm)<<8);
      // rootdiradd is in sectors
      // go past map zones, modulo sharesize
      // and go to whole 'bits per map bit' offset if multiple sector)
      fmt->rootdiradd=fmt->mapbits<<(fmt->log2bpmb-fmt->log2secsize);
-
    }
-// compute plausible heads & spt
-
+   fmt->zonecount=fmt->zonec;fmt->zonecount2=fmt->zonec>>8;
    // suggest a head/cylinder/spt setup
    CHSRound(fmt->cyls,fmt->heads,fmt->spt,fmt->SecCount);
-//   fmt->heads=16;   // initialise
-//   do
-//   {
-//     fmt->heads++;
-//     fmt->cyls=fmt->SecCount/fmt->heads;
-//     fmt->spt=63;
-//     while(fmt->cyls%fmt->spt) fmt->spt--;
-//     fmt->cyls=fmt->cyls/fmt->spt;
-//
-//   } while((fmt->cyls>65535)&&(fmt->heads>255));
-//   testprint("heads %d, cyls %d, secs %d\n",fmt->heads,fmt->cyls,fmt->spt);
 
 }

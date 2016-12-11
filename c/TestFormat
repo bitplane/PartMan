@@ -33,7 +33,7 @@ int main (int argc,char* argv[])
   int ID = 1;
   int dospart = 0;// dos partition to use
   int defect[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
+//  char buf[256];
 // defect[0] = 0x123;
 //
 // defect[1] = 0x115000;
@@ -44,12 +44,15 @@ int main (int argc,char* argv[])
 
  if(sectorsize>0&&ID!=preventID)
  {
+//   buf[0]=0;
+//   ReadAcornPartitionName(ID,OverrideKey,04,buf,sectorsize);
+//   testprint("buf:%s\n",buf);
    _swix(OS_ServiceCall,_INR(0,2),ID,Service_SCSIDetached,0x7);
    // write a empty MBR dos header just to ensure we're in control
    // 0 means write
    e=NukeBootSectors(ID);
    if(e) wimp_error(e);
-   MakeAcornFormat(ID,OverrideKey,sectorsize,0,capacity,"SingleAcorn", defect,2,1);
+   MakeAcornFormat(ID,OverrideKey,sectorsize,0,capacity,"SingleAcrn", defect,2,1);
 // MakeDosFormat(ID,OverrideKey,sectorsize,0,capacity-1,capacity-1,"testdosx", defect,dospart,1);
  //MakeDosFormat  (1,0xfc000003,0x200,0xf4000, 0xf4000,0xf4000,"testdos",defect,1,2);
 // MakeAcornFormat(1,0xfc000003,0x200,0xf4000<<1,0xf40,"test2",defect,2,1);

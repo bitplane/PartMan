@@ -41,3 +41,8 @@ in due course.
 
 JB
 20161128
+
+20161211
+Filecore formatting now works more in line with expectation with
+large discs. (There was an error in computing the max usable zones
+which meant that the zonecount was 8 bit only).

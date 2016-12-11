@@ -82,6 +82,7 @@ void reportfmt(FormatArray* fmt)
   testprint("\n     (LFAU)      %x",1<<fmt->log2bpmb );
   testprint("\nfmt->zonecount   %d",fmt->zonecount);
   testprint("\nfmt->zonecount2  %x",fmt->zonecount2);
+  testprint("\nfmt->zonetotal  &%x %d",fmt->zonec,fmt->zonec);
   testprint("\nfmt->bigdisc     %x",fmt->bigdisc);
   testprint("\nfmt->bigdir      %x",fmt->bigdir);
   testprint("\nfmt->zonespare   %d",fmt->zonespare);
@@ -113,7 +114,27 @@ void reportfmt(FormatArray* fmt)
   testprint("\nfmt->skew        %x",fmt->skew);
 
 }
-
+void reportAcornBootSec(disc_record* dr)
+{
+  testprint("\nlog2secsize %x",dr->l2secsize);
+  testprint("\nHeads      %3d\nspt         %2d",dr->heads,dr->spt);
+  testprint("\ndensity     %d",dr->density);
+  testprint("\nidlen       %d",dr->idlen);
+  testprint("\nl2bpmb      %d",dr->l2bpmb);
+  testprint("\nskew        %d",dr->skew);
+  testprint("\nbootoption  %d",dr->bootoption);
+  testprint("\nlowsector   %x",dr->lowsector);
+  testprint("\nnzones      %04x",dr->nzones+(dr->nzones2<<8));
+  testprint("\nzonespare   %x",dr->zonespare[0]+(dr->zonespare[1]<<8));
+  testprint("\nroot        %x",dr->root);
+  testprint("\ndiscsize    %08x%08x",dr->discsizehi,dr->discsize);
+  testprint("\ndiscid      %04x",dr->discid[1]+(dr->discid[0]<<8));
+  testprint("\ndiscname    %10s",dr->discname);
+  testprint("\nsharesize   %d",dr->sharesize);
+  testprint("\nbigflag     %d",dr->bigflag);
+  testprint("\nformatversn %x",dr->formatversion);
+  testprint("\nrootdirsize %x\n",dr->rootdirsize);
+}
 
 
 #else
@@ -125,6 +146,7 @@ void testsave (char* title, char * data, int size){_UU(title);_UU(data);_UU(size
 void testprint (char * data, ...){_UU(data);}
 void reportfmt(FormatArray* fmt){_UU(fmt);}
 void testprintGUID (char * ptr) {_UU(ptr);}
+void reportAcornBootSec(disc_record* dr){_UU(dr);}
 
 
 

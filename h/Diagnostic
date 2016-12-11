@@ -25,6 +25,7 @@ void testprint (char * data, ...);
 void testprintGUID (char * ptr);
 
 void reportfmt(FormatArray * fmt);
+void reportAcornBootSec(disc_record* dr);
 
 
 
