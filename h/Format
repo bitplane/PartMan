@@ -17,8 +17,6 @@
 // Format defines etc
 
 #include "FormatDef.h"
-int BuildAcornLayout(FormatArray* fmt,bootsector* bs);
-
 int MakeAcornFormat(int          ID,
                     unsigned int AccessKey,
                     int          SecSize,
@@ -54,10 +52,10 @@ void DefectChecksum(int *defect, int disctype);
 
 _kernel_oserror* ReadAcornPartitionName(int ID, unsigned int AccessKey, int PartitionOffset, char *Name, int sectorsize);
 
-void ComputeAcornLayout(FormatArray* fmt);
 void fragwrite(char* mapsector, int position, int FragmentID, int FragmentLen, int IDlen);
 
 _kernel_oserror*  FormatPartition( int ID, FormatParamsp FP, int sectorsize);
 
+void MakeRootDir(int bigdir , char* map, int rootaddress);
 
 #endif

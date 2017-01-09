@@ -27,7 +27,7 @@ unsigned char zonecount2;       // input: zone count hi byte (bigdir)
 unsigned char bigdisc;          // input: 1 if => 512 MBytes disc
 unsigned char bigdir;           // input: 1 if big directory disc
 unsigned int  zonec;            //        zonecount work register
-unsigned int  sharesize;        // input: log 2 of bigdisc sharesize
+unsigned int  log2zsize;        // input: log 2 of zone count
 unsigned int  zonespare;        // input: spare bits in zone
 unsigned int  SecSize;          // input: sector size, bytes
 unsigned int  SecCount;         // input: disc length in sectors
@@ -52,6 +52,7 @@ unsigned int  fragmentzonenorm; // result: fragments in main zones
 unsigned int  fragmentzonelast; // result: fragments in last zone
 unsigned int  zonesparefound;   // result: zonespare bits computed
 unsigned int  zone0sparefound;  // result: zone0spare bits computed
+unsigned int  NewSecCount;      // result: sectors used
 unsigned int  cyls;             // result: cylinders
 unsigned char spt;              // result: secs per trk
 unsigned char heads;            // result: heads

@@ -232,6 +232,7 @@ bool CheckGPTValid(int device)
       }
     }
   }
+  // return leaving all pointers in place
   return true;
 }
 // convert GUID in string format to binary
@@ -457,7 +458,7 @@ void ReadGPTInfo(int device)
 // returns partition pointer, or NULL if partition not there
 GUIDPartn* ReturnGPTPartionInfo ( int ID, int partition)
 {
-  GUIDPartn * gp;
+  static GUIDPartn * gp;
   if(CheckGPTValid(ID))
   {
     gp=calloc(1,sizeof(struct GUIDPartn));

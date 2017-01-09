@@ -39,6 +39,6 @@
 #include "FormatBits.h"
 #include "SectorRW.h"
 
-void wimp_error(_kernel_oserror *er);
+extern void wimp_error(_kernel_oserror *er);
 
 #endif

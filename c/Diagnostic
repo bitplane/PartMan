@@ -77,16 +77,16 @@ void reportfmt(FormatArray* fmt)
 {
 
   testprint("\nfmt->log2secsize %x",fmt->log2secsize);
-  testprint("\nfmt->idlen       %d",fmt->idlen);
+  testprint("\nfmt->idlen       %x",fmt->idlen);
   testprint("\nfmt->log2bpmb    %x",fmt->log2bpmb );
   testprint("\n     (LFAU)      %x",1<<fmt->log2bpmb );
-  testprint("\nfmt->zonecount   %d",fmt->zonecount);
+  testprint("\nfmt->zonecount   %x",fmt->zonecount);
   testprint("\nfmt->zonecount2  %x",fmt->zonecount2);
   testprint("\nfmt->zonetotal  &%x %d",fmt->zonec,fmt->zonec);
   testprint("\nfmt->bigdisc     %x",fmt->bigdisc);
   testprint("\nfmt->bigdir      %x",fmt->bigdir);
-  testprint("\nfmt->zonespare   %d",fmt->zonespare);
-  testprint("\nfmt->SecSize     %d",fmt->SecSize);
+  testprint("\nfmt->zonespare   %x",fmt->zonespare);
+  testprint("\nfmt->SecSize     %x",fmt->SecSize);
   testprint("\nfmt->SecCount    %x",fmt->SecCount);
   testprint("\nfmt->endzonebits %x",fmt->endzonebits);
   testprint("\nfmt->rootaddress %x",fmt->rootaddress);
@@ -95,7 +95,7 @@ void reportfmt(FormatArray* fmt)
   testprint("\nfmt->mapbase     %x",fmt->mapbase);
   testprint("\nfmt->discsize    %x",fmt->discsize);
   testprint("\nfmt->discsizehi  %x",fmt->discsizehi);
-  testprint("\nfmt->sharesize   %d",fmt->sharesize);
+  testprint("\nfmt->log2zsize   %x",fmt->log2zsize);
   testprint("\nfmt->newshsize   %x",fmt->newsharesize);
   testprint("\nfmt->mapbits     %x",fmt->mapbits);
   testprint("\nfmt->dirbits     %x",fmt->dirbits);
@@ -112,7 +112,7 @@ void reportfmt(FormatArray* fmt)
   testprint("\nfmt->heads       %d",fmt->heads);
   testprint("\nfmt->density     %x",fmt->density);
   testprint("\nfmt->skew        %x",fmt->skew);
-
+  testprint("\n");
 }
 void reportAcornBootSec(disc_record* dr)
 {
@@ -128,9 +128,9 @@ void reportAcornBootSec(disc_record* dr)
   testprint("\nzonespare   %x",dr->zonespare[0]+(dr->zonespare[1]<<8));
   testprint("\nroot        %x",dr->root);
   testprint("\ndiscsize    %08x%08x",dr->discsizehi,dr->discsize);
-  testprint("\ndiscid      %04x",dr->discid[1]+(dr->discid[0]<<8));
+  testprint("\ndiscid      %04x",dr->discid[0]+(dr->discid[1]<<8));
   testprint("\ndiscname    %10s",dr->discname);
-  testprint("\nsharesize   %d",dr->sharesize);
+  testprint("\nlog2zsize   %d",dr->log2zsize);
   testprint("\nbigflag     %d",dr->bigflag);
   testprint("\nformatversn %x",dr->formatversion);
   testprint("\nrootdirsize %x\n",dr->rootdirsize);

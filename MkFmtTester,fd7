@@ -1,2 +1,2 @@
 Dir <Obey$Dir>
-amu -f MakeFmtTester THROWBACK=-throwback
+amu -f MakeFmtTester THROWBACK=-throwback CDEFINES="-DDebug"

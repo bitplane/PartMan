@@ -1,2 +1,2 @@
 Dir <Obey$Dir>
-amu -f MakeGPTTST THROWBACK=-throwback
+amu -f MakeGPTTST THROWBACK=-throwback CDEFINES="-DDebug"

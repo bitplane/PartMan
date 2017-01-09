@@ -9,20 +9,23 @@ char    l2secsize;
 char    spt;
 char    heads;
 char    density;
+
 char    idlen;
 char    l2bpmb;
 char    skew;
 char    bootoption;
+
 char    lowsector;
 char    nzones;
-char    zonespare[2];
+char    zonespare[2];           // looks like only low byte used
+
 int     root;
 int     discsize;
 char    discid[2];
 char    discname[10];
 int     disctype;
 int     discsizehi;
-char    sharesize;              // max 0xf
+char    log2zsize;              // max 0xf
 char    bigflag;
 char	nzones2;
 char	bdspare1;              // must be 0
