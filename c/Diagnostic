@@ -57,8 +57,11 @@ void testprint (char * fmt, ...)
   FILE * fp;
   va_list arg;
   va_start (arg,fmt);
+  _kernel_swi_regs rr;
   if((fp = fopen( debugfile,"ab")) != NULL)
   {
+    _kernel_swi(OS_ReadMonotonicTime,&rr,&rr);
+    fprintf(fp," %d: ",rr.r[0]);
     vfprintf(fp,fmt,arg);
     fclose(fp);
   }

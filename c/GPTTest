@@ -24,7 +24,7 @@
 #define task_name "gpttst"          /* the name of our task */
 static _kernel_swi_regs reg;
 #define MaxPartitions 7
-#define NumParts 3
+#define NumParts 2
 
 int main (int argc,char* argv[])
 {

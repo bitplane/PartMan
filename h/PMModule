@@ -40,6 +40,5 @@ extern _kernel_oserror *PM_MorePartitions(_kernel_swi_regs *r, void *pw);
 extern _kernel_oserror *CommandDisks(void);
 extern _kernel_oserror *UpCallVHandler(_kernel_swi_regs *r, void *pw);
 void wimp_error(_kernel_oserror *er);
-extern _kernel_oserror* AttachCallBack (_kernel_swi_regs* r, void* pw, void* h);
 #endif
 

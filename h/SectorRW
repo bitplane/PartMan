@@ -29,7 +29,7 @@ _kernel_oserror * SecWrite(int ID, unsigned int AccessKey, void *From, int Lengt
 
 // read disc capacity & sector size
 // set answers to 0 if error
-void ReadDiscCapacity(int ID, unsigned int AccessKey,int* capacity,int* sectorsize);
+_kernel_oserror * ReadDiscCapacity(int ID, unsigned int AccessKey,int* capacity,int* sectorsize);
  // buffered sector read/write for use with formatting
 typedef struct{
  int ID;  		// scsi ID to use

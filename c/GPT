@@ -30,6 +30,7 @@ static PartitionRecord* partn;
 static _kernel_oserror *err;
 GUIDPartn *  gpt=NULL;
 static GUIDPartn *  altgpt=NULL;
+static _kernel_swi_regs rg;
 
 static int DiscMaxLBA=0, DiscSectorSize=0;
 
@@ -127,15 +128,39 @@ void freepointers(void)
 //
 bool CheckGPTValid(int device)
 {
-  testprint("cgptv %d\n",device);
-  ReadDiscCapacity(device,OverrideKey,&DiscMaxLBA,&DiscSectorSize);
-    testprint("cgptv rdc done \n");
-  testprint(" dss><0 dev %d\n",device);
+  int timer;
+  static _kernel_oserror ee;
+  err=&ee;
+  testprint("Start cgptv id:%d\n",device);
+  _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
+  timer=rg.r[0]+75;  // allow 75cs to get ready
+  err->errnum=ErrorNumber_SCSI_CC_NotReady;
+  err->errmess[0]=0;
+  while(err->errnum==ErrorNumber_SCSI_CC_NotReady)
+  {
+    err=ReadDiscCapacity(device,OverrideKey,&DiscMaxLBA,&DiscSectorSize);
+    testprint("cgptv rdc done1 err:%s\n",err?err->errmess:"");
+    _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
+    if(rg.r[0]>timer)
+    {
+       testprint("cgptv rdc done err:%s\n",err?err->errmess:"");
+       freepointers();return false;
+    }
+  }
+  testprint("cgptv rdc done err:%s\n",err?err->errmess:"");
   if(DiscSectorSize==0){testprint(" dss=0 dev %d\n",device);return(false);}
-  testprint(" dss><0 dev %d\n",device);
+  testprint(" dss=%x dev %d\n",DiscSectorSize,device);
   if(mbrp=calloc(1,sizeof(struct ProtectiveMBR)),mbrp)
   {
+#ifdef Debug
+  _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
+  testprint("before cgptv secrd time stamp %dcs\n", rg.r[0]);
+#endif
     err=SecRead(device,OverrideKey,mbrp,sizeof(struct ProtectiveMBR),0,DiscSectorSize);
+#ifdef Debug
+  _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
+  testprint("time stamp %dcs\n", rg.r[0]);
+#endif
     if (!err)
     {
       partn=(PartitionRecord *)&mbrp->Partition1;
@@ -232,6 +257,10 @@ bool CheckGPTValid(int device)
       }
     }
   }
+#ifdef Debug
+  _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
+  testprint("exit cgptv time stamp %dcs\n", rg.r[0]);
+#endif
   // return leaving all pointers in place
   return true;
 }
@@ -335,7 +364,7 @@ int PartitionDisc(int device, int numpart, int partcount, int partn[])
   int sectorsize;
   int gptseccount,tmp;
   // discover the device sector size and device size
-  ReadDiscCapacity(device, OverrideKey ,&capacity, &sectorsize);
+  err=ReadDiscCapacity(device, OverrideKey ,&capacity, &sectorsize);
   if(capacity==0) {testprint("no disk there\n");return(-1);}  // no disk there
   // first claim space to work in
   // use calloc() a we need to clear unused space

@@ -37,7 +37,7 @@ swi-chunk-base-number:  &59ac0
 
 swi-handler-code:       module_swi_handler
 
-swi-decoding-table:     PartMan, MorePartitions, Reset
+swi-decoding-table:     PartMan, MorePartitions, Reset, Sizes
 
 
 #ifdef NO_INTERNATIONAL_HELP

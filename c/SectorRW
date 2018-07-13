@@ -102,41 +102,57 @@ testprint("SecWrite ID:%x addr:%x LBA:%x Len:%x\n",ID,(int)buffer,(int)LBA,Lengt
 
 // read disc capacity & sector size
 // set answers to 0 if error
-void ReadDiscCapacity(int ID, unsigned int AccessKey,int* capacity,int* sectorsize)
+_kernel_oserror * ReadDiscCapacity(int ID, unsigned int AccessKey,int* capacity,int* sectorsize)
 {
   AccessKey=AccessKey;
-  static int   ans[2]={0,0};
+  static int ans[10];         // up to 40 chars
   char *dd;
-#ifdef Debug
-  _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
-  int time=rg.r[0];
-#endif
-//   _kernel_oserror * err=NULL;
-//
-//   rg.r[0] = 0x01000000 | ID;
-//   rg.r[1] = 10;
-//   rg.r[2] = (int)cdb;
-//   cdb[0] = 0x25;
-//   cdb[1] = 0;
-//   cdb[2] = 0;
-//   cdb[3] = 0;
-//   cdb[4] = 0;
-//   cdb[5] = 0;
-//   cdb[6] = 0;
-//   cdb[7] = 0;
-//   cdb[8] = 8;
-//   cdb[9] = 0;
-//   rg.r[3] = (int)ans;
-//   rg.r[4] = 8;
-//   rg.r[5] = 200;   // 2 secs timeout
-//   rg.r[8] = AccessKey;
-//
-//   err=_kernel_swi(SCSI_Op,&rg,&rg);
-  err = asm_ReadCapacity(ID, (volatile void*) ans);
-#ifdef Debug
-  _kernel_swi(OS_ReadMonotonicTime,&rg,&rg);
-  testprint("time taken %d cs\n",rg.r[0]-time);
-#endif
+   _kernel_oserror * err=NULL;
+
+   cdb[0] = 0x0;
+   cdb[1] = 0;
+   cdb[2] = 0;
+   cdb[3] = 0;
+   cdb[4] = 0;
+   cdb[5] = 0;
+   testprint("tstrdy %x start\n",ID);
+
+   rg.r[0] = 0x01000000 | ID;
+   rg.r[1] = 10;
+   rg.r[2] = (int)cdb;
+   rg.r[3] = (int)ans;
+   rg.r[4] = cdb[4];
+   rg.r[5] = 75;   // .75 secs timeout (min usable on crucial is 50)
+   rg.r[8] = AccessKey;
+
+   err=_kernel_swi(SCSI_Op,&rg,&rg);
+   testprint("tstrdy %x enderr:%s left:%d\n",ID,err?err->errmess:"",cdb[4]-rg.r[4]);
+   if(!err)
+   {
+   cdb[0] = 0x25;
+   cdb[1] = 0;
+   cdb[2] = 0;
+   cdb[3] = 0;
+   cdb[4] = 0;
+   cdb[5] = 0;
+   cdb[6] = 0;
+   cdb[7] = 0;
+   cdb[8] = 8;
+   cdb[9] = 0;
+   testprint("Readdisc capacity %x start\n",ID);
+
+   rg.r[0] = 0x01000000 | ID;
+   rg.r[1] = 10;
+   rg.r[2] = (int)cdb;
+   rg.r[3] = (int)ans;
+   rg.r[4] = cdb[8];
+   rg.r[5] = 75;   // .75 secs timeout (min usable on crucial is 50)
+   rg.r[8] = AccessKey;
+
+   err=_kernel_swi(SCSI_Op,&rg,&rg);
+//  err = asm_ReadCapacity(ID, (volatile void*) ans);
+   testprint("Readdisc capacity %x enderr:%s left:%d\n",ID,err?err->errmess:"",cdb[8]-rg.r[4]);
+  }
   if(!err)
   {
     dd=(char*)ans;
@@ -154,9 +170,9 @@ void ReadDiscCapacity(int ID, unsigned int AccessKey,int* capacity,int* sectorsi
     *capacity = 0;
     *sectorsize = 0;
   }
-  testprint("\n ReadDiscCapdn id:%x cap:%x secsiz:%x: ssaddr:%x err: %s\n",ID,*capacity,*sectorsize,(int)sectorsize,(err)?(int)err->errmess:(int)"no err");
+  testprint("ReadDiscCap done id:%x cap:%x secsiz:%x: ssaddr:%x err: %s\n",ID,*capacity,*sectorsize,(int)sectorsize,(err)?(int)err->errmess:(int)"no err");
 
-  return;
+  return err;
 }
 
 // called at program start

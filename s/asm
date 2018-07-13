@@ -53,7 +53,7 @@ DMBWrPtr DCD    0
 ; if error r0 -> error block
 ; timeout is 1 second
 asm_Inquiry
-        Push   "r1-r5,r8,lr"
+        Push   "r1-r12,lr"
         MOV     R3, R1
         ORR     R0, R0, #&01000000
         MOV     R1, #6
@@ -63,7 +63,7 @@ asm_Inquiry
         MOV     R8, #&fc000003          ; magic access key
         SWI     XSCSI_Op
         MOVVC   r0, #0
-        Pull    "r1-r5,r8,pc"
+        Pull    "r1-r12,pc"
 CDB_Inquiry
         DCB     &12                     ; INQUIRY
         DCB     0
@@ -80,7 +80,7 @@ CDB_Inquiry
 ; if error r0 -> error block
 ; timeout is .75 second
 asm_ReadCapacity
-        Push   "r1-r8,lr"
+        Push   "r1-r12,lr"
         MOV     R3, R1
         ORR     R0, R0, #&01000000
         MOV     R1, #10
@@ -90,7 +90,7 @@ asm_ReadCapacity
         MOV     R8, #&fc000003          ; magic access key
         SWI     XSCSI_Op
         MOVVC   r0, #0
-        Pull    "r1-r8,pc"
+        Pull    "r1-r12,pc"
 CDB_ReadCapacity
         DCB     &25                     ; ReadCapacity
         DCB     0

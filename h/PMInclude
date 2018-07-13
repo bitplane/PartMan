@@ -26,6 +26,7 @@
 
 #include "kernel.h"
 #include "swis.h"
+#include "interface/SCSIErr.h"
 
 // Macro to 'hide' unused parameters
 #define  IGNORE(v) ((v)=(v))
