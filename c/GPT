@@ -136,7 +136,7 @@ bool CheckGPTValid(int device)
   timer=rg.r[0]+75;  // allow 75cs to get ready
   err->errnum=ErrorNumber_SCSI_CC_NotReady;
   err->errmess[0]=0;
-  while(err->errnum==ErrorNumber_SCSI_CC_NotReady)
+  while(err && err->errnum==ErrorNumber_SCSI_CC_NotReady)
   {
     err=ReadDiscCapacity(device,OverrideKey,&DiscMaxLBA,&DiscSectorSize);
     testprint("cgptv rdc done1 err:%s\n",err?err->errmess:"");
