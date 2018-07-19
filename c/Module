@@ -111,6 +111,45 @@ void wimp_error(_kernel_oserror *er)
   }
 }
 
+// initial scan to see what may already be mounted
+static _kernel_oserror* ScanCallBack (_kernel_swi_regs* r, void* pw, void* h)
+{
+  (void) r;
+  (void) pw;
+  (void) h;
+  _kernel_oserror* myerr;
+  int i,type;
+  driveArray* dr;
+
+  for(i=0;i<32;i++)
+  {
+    // first we find what partitioned scsi devices are attached (*dev.)
+    type=-1;
+    myerr=Inquiry(i,OverrideKey,&type);
+    testprint("err %s type %x\n",(myerr)?myerr->errmess:"none",type);
+    if(!myerr && !type)
+    {
+      dr=ReadDrivePartitions(i);
+      testprint("SCB got dr:%p\n",dr);
+      if(dr)
+      {
+        int j=0;
+        while(dr->partition[j].used && j<MaxPartitions)
+        {
+          MountedDiscNum(i, dr->partition[j].partitionLBA,&type);
+          if(type>=0)
+          {
+            dr->partition[j].drive=type;
+          }
+          j++;
+         }
+      }
+
+    }
+  }
+  return NULL;
+}
+
 _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base, void *pw)
 {
     (void) cmd_tail;
@@ -134,6 +173,8 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base, void *
 
     if(err = _swix(OS_Claim, _INR(0,2), UpCallV, upcallvhandler,
               module_wsp), !err) UpCall = true;
+
+    callx_add_callback(ScanCallBack,(void*)NULL);
 
     return NULL;
 
@@ -386,14 +427,14 @@ driveArray* ReadDrivePartitions (int drive)
     }
     else
     { // couldnt get partition info
-          pa=registerDrive(drive, 0);
-        testprint("pa found %x\n", (int)pa);
-          if(pa)
-          {
-          pa->partitionLBA = 0;
-          pa->used = 2; testprint("1:used addr:%p pa:%p\n", &pa->used,pa);
-          }
-         testprint("Got drive start LBA %x, pa=%x\n",0,(int)pa);
+      pa=registerDrive(drive, 0);
+      testprint("pa found %x\n", (int)pa);
+      if(pa)
+      {
+        pa->partitionLBA = 0;
+        pa->used = 2; testprint("1:used addr:%p pa:%p\n", &pa->used,pa);
+      }
+      testprint("Got drive start LBA %x, pa=%x\n",0,(int)pa);
       testprint("\ncgptv failed.. reporting non partitioned\n");
       return NULL;
     }
@@ -534,7 +575,8 @@ _kernel_oserror *PM_Reset(_kernel_swi_regs *r, void *pw)
   return(NULL);
 }
 
-// return an array of scsiID, partition start block and partition length in blocks.
+// return an array of scsiID, partition start block and partition length
+// in blocks, SCSIFSDrive number
 // On entry r0=SCSI ID . if r0=-1 then return min buffer size
 //          r1-> buffer to receive data. Must be at least min buffer size
 // on exit
@@ -545,12 +587,12 @@ _kernel_oserror *PM_Sizes(_kernel_swi_regs *r, void *pw)
 {
   (void) pw;
   driveArray* dr;
-  int capacity, sectorsize;
-  typedef struct {int id; int start;int size;}bufans;
-  bufans* bp = (bufans*)(r->r[1]);
+  int capacity, sectorsize,temp;
+  mountInfo* bp = (mountInfo*)(r->r[1]);
 
-  // return buffer size needed of -1
-  if(r->r[0]==-1){r->r[0]=(((MaxPartitions+1)*3)*sizeof(int));return(NULL);}
+  // return buffer size needed if -1
+  if(r->r[0]==-1){r->r[0]=(MaxPartitions*sizeof(mountInfo));return(NULL);}
+
   ReadDiscCapacity(r->r[0], OverrideKey,&capacity,&sectorsize);
   dr =ReadDrivePartitions(r->r[0]);
   if(dr)
@@ -563,6 +605,10 @@ _kernel_oserror *PM_Sizes(_kernel_swi_regs *r, void *pw)
         bp[i].start=dr->partition[i].partitionLBA;
         bp[i].size=capacity;
         bp[i+1].start=capacity;
+        MountedDiscNum(bp[i].id, bp[i].start,&temp);
+    testprint("mdn gave %x for %x %x\n",temp,bp[i].id, bp[i].start);
+        bp[i].mountno=temp;
+       // dr->partition[i].drive;//
         i++;
      }
      r->r[0]=i;
@@ -627,8 +673,8 @@ _kernel_oserror *module_cmd_handler(const char *arg_string, int argc, int cmd_no
         printf("\nFound %d disc partitions\n",rg.r[0]);
         for(i=0;i<rg.r[0];i++)
         {
-          printf("SCSI ID:%02x Start %08x Size %08x\n",p[0],p[1],p[2]);
-          p+=3;
+          printf("SCSI ID:%02x Start %08x Size %08x SCSIFSdisc %d\n",p[0],p[1],p[2],p[3]);
+          p+=4;
         }
         free((void*)rg.r[1]);
       }
@@ -643,4 +689,5 @@ _kernel_oserror *module_cmd_handler(const char *arg_string, int argc, int cmd_no
 
     return module_error(PartMan_UnKnCmd);
 }
+
 

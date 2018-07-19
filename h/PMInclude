@@ -39,6 +39,7 @@
 
 #include "FormatBits.h"
 #include "SectorRW.h"
+#include "PMModule.h"
 
 extern void wimp_error(_kernel_oserror *er);
 

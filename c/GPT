@@ -355,7 +355,6 @@ case GUIDUnknown:
 int PartitionDisc(int device, int numpart, int partcount, int partn[])
 {
 //  testprint("creating dev:%d maxpart:%d with %d used\n",device,numpart,partcount);
-  if(device==0){testprint(" not allowed to touch scsi id 0\n");return 1;}
 //  ProtectiveMBR* sec0=0;
   GPTHeader* sec1=0;
 //  PartitionRecord* pn=0;
@@ -559,11 +558,11 @@ _kernel_oserror * NukeBootSectors(int device)
   buf=calloc(1,0x200);
   if(buf)
   {
-    e=SecWrite(device, 0xfc000003, buf, 0x200, 0,  0x200);
-    if(!e)SecWrite(device, 0xfc000003, buf, 0x200, 1,  0x200);
-    if(!e)SecWrite(device, 0xfc000003, buf, 0x200, 2,  0x200);
-    if(!e)SecWrite(device, 0xfc000003, buf, 0x200, 3,  0x200);
-    if(!e)SecWrite(device, 0xfc000003, buf, 0x200, 6,  0x200);
+    e=SecWrite(device, OverrideKey, buf, 0x200, 0,  0x200);
+    if(!e)SecWrite(device, OverrideKey, buf, 0x200, 1,  0x200);
+    if(!e)SecWrite(device, OverrideKey, buf, 0x200, 2,  0x200);
+    if(!e)SecWrite(device, OverrideKey, buf, 0x200, 3,  0x200);
+    if(!e)SecWrite(device, OverrideKey, buf, 0x200, 6,  0x200);
   }
   return e;
 }

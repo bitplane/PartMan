@@ -28,13 +28,25 @@ static _kernel_swi_regs reg;
 
 int main (int argc,char* argv[])
 {
-  int ID=1; // scsi devi id to use
   int i;
   int partn[MaxPartitions];
   int partcount=NumParts;
-  if(argc==2)
+  if(argc<2)
   {
-    int param=*argv[1]-0x30;
+    printf("Drive ID not given\n");
+    return 0;
+  }
+  int ID=atoi(argv[1]);
+
+  if(CheckBootDiscID(ID,0,true))
+  {
+    printf("Target drive contains the boot disc - aborting\n");
+    return 0;
+  }
+
+  if(argc==3)
+  {
+    int param=atoi(argv[2]);
     if ((param)&&(param<=MaxPartitions))
       {
         partcount=param;
@@ -111,9 +123,8 @@ int main (int argc,char* argv[])
    strncpy(FPp->discname,"Filecore7",FPNameLenMAX);
    }
 
-   _swix(OS_Module,_INR(0,1) ,3, "SCSIFS");
+   //_swix(OS_Module,_INR(0,1) ,3, "SCSIFS");
     _swix(OS_ServiceCall,_INR(0,2),ID,Service_SCSIDetached,0x7);
-
 
  int result;
  result=PartitionDisc(ID, MaxPartitions, partcount, partn);

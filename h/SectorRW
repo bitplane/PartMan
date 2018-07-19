@@ -27,6 +27,23 @@ _kernel_oserror * SecRead(int ID, unsigned int AccessKey, void *To, int Length, 
 // assume Length is multiple of SecSize
 _kernel_oserror * SecWrite(int ID, unsigned int AccessKey, void *From, int Length, int LBA, int SecSize);
 
+// perform inquiry command and return type field
+_kernel_oserror * Inquiry(int ID, unsigned int AccessKey,int* type);
+
+// Check to see if this ID and partition base is the Boot Disc
+// returns false if not boot disc,
+// returns true if partial and scsiid matches
+// returns true if it is a compete match.
+bool CheckBootDiscID(int scsiid, int start, bool partial);
+
+// return SCSIFS mounted disc number for scsi ID & partition start address
+// or -1 if not currently mounted
+void MountedDiscNum(int scsiID, int partLBA, int *scsifsID);
+// return SCSI ID & partition start address for SCSIFS mounted disc number
+// or -1 if not currently mounted
+void MountedDiscLoc(int scsifsID, int *scsiid, int *start);
+
+
 // read disc capacity & sector size
 // set answers to 0 if error
 _kernel_oserror * ReadDiscCapacity(int ID, unsigned int AccessKey,int* capacity,int* sectorsize);
