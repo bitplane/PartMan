@@ -18,7 +18,7 @@
 #include "debuglib/debuglib.h"
 #include "Global/Services.h"
 #include "Global/RISCOS.h"
-#include "Global/Upcall.h"
+#include "Global/UpCall.h"
 #include "callx/callx.h"
 
 #include "ModuleHdr.h"
