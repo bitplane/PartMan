@@ -15,17 +15,6 @@
 #ifndef PartMan_H
 #define PartMan_H
 
-#ifdef DEBUGLIB
-#define DEBUG
-#endif
-#ifdef DEBUG
-#undef dprintf
-#define dprintf(...) _dprintf("",__VA_ARGS__)
-#else
-#undef dprintf
-#define dprintf(...) (void) 0
-#endif
-
 
 #include <stdint.h>
 #include <stdbool.h>
