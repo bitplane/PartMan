@@ -12,29 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Makefile for SPI driver
+# Makefile for PartMan
 #
 
 COMPONENT    = PartMan
 OBJS         = module  asm  diagnostic SectorRW crc32 GPT
 CMHGDEPENDS  = module
 CMHGFILE     = ModuleHdr
-ASMHDRS      =
-ASMCHDRS     =
 HDRS         =
 CFLAGS       = -We
 CDFLAGS      = -DDEBUGLIB
-LIBS         = ${CALLXLIB} ${ASMUTILS} ${TBOXLIB}
+LIBS         = ${CALLXLIB} ${ASMUTILS}
 ROMCDEFINES  = -DROM
-CINCLUDES = -IC:tboxlibint,tbox:,C:
 ifeq ("${CMDHELP}","None")
 CMHGDEFINES += -DNO_INTERNATIONAL_HELP
 endif
 
 include CModule
-
-DBG_LIBS    += ${NET5LIBS}
-
-
 
 # Dynamic dependencies:

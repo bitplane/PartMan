@@ -15,10 +15,6 @@
 #ifndef PMModule_H
 #define PMModule_H
 
-#ifndef __cmhg_header_h
-#include "ModuleHdr.h"
-#endif
-
 #ifndef GPT_H
 #include "GPT.h"
 #endif
