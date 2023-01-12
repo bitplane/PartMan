@@ -23,7 +23,7 @@ TARGET	  = gpttest
 
 OBJS    =   GPTTest GPT diagnostic SectorRW Formatter\
             FormatAcrn FormatDos asm crc32 global
-CINCLUDES = -IC:tboxlibint,tbox:,C:
+CINCLUDES = -Itbox:,C:
 
 include CApp
 

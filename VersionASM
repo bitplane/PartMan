@@ -12,9 +12,9 @@
 Module_MajorVersion     SETS    "0.16"
 Module_Version          SETA    16
 Module_MinorVersion     SETS    ""
-Module_Date             SETS    "05 Feb 2022"
-Module_ApplicationDate  SETS    "05-Feb-22"
+Module_Date             SETS    "14 Jan 2023"
+Module_ApplicationDate  SETS    "14-Jan-23"
 Module_ComponentName    SETS    "PartMan"
 Module_FullVersion      SETS    "0.16"
-Module_HelpVersion      SETS    "0.16 (05 Feb 2022)"
+Module_HelpVersion      SETS    "0.16 (14 Jan 2023)"
                         END

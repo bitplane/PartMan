@@ -22,7 +22,7 @@ TARGET	  = fmat_tst
 
 
 OBJS    =   FormatAcrn TestFormat FormatDos GPT asm crc32 diagnostic SectorRW
-CINCLUDES = -IC:tboxlibint,tbox:,C:
+CINCLUDES = -Itbox:,C:
 
 include CApp
 
