@@ -16,11 +16,10 @@
 #
 
 COMPONENT    = PartMan
-OBJS         = module  asm  diagnostic SectorRW crc32 GPT
-CMHGDEPENDS  = module
+OBJS         = Module asm Diagnostic SectorRW crc32 GPT
+CMHGDEPENDS  = Module
 CMHGFILE     = ModuleHdr
 HDRS         =
-CFLAGS       = -We
 CDFLAGS      = -DDEBUGLIB
 LIBS         = ${CALLXLIB} ${ASMUTILS}
 ROMCDEFINES  = -DROM
@@ -29,5 +28,9 @@ CMHGDEFINES += -DNO_INTERNATIONAL_HELP
 endif
 
 include CModule
+
+ifneq (${TOOLCHAIN},GNU)
+CFLAGS += -We
+endif
 
 # Dynamic dependencies:

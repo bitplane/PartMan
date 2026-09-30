@@ -26,7 +26,10 @@
 
 #include "kernel.h"
 #include "swis.h"
-#include "interface/SCSIErr.h"
+#include "Interface/SCSIErr.h"
+
+/* Partition extension absent from older SDK swis.h headers. */
+enum { PartMan_SCSIFS_Partitions = 0x40995 };
 
 // Macro to 'hide' unused parameters
 #define  IGNORE(v) ((v)=(v))

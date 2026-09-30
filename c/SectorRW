@@ -421,13 +421,13 @@ bool CheckBootDiscID(int scsiid, int start, bool partial)
   }
 
   // we know it is booting from SCSI and we know disc num
-  _swix(SCSIFS_Partitions,_INR(0,1)|_OUTR(1,2),2,DefaultSCSIFSDr,&bootscsiid,&bootstart);
+  _swix(PartMan_SCSIFS_Partitions,_INR(0,1)|_OUTR(1,2),2,DefaultSCSIFSDr,&bootscsiid,&bootstart);
   testprint("Boot disc uses scsi id %x start %x\n",bootscsiid, bootstart);
   //check if we're only concerned wheter drive contains boot
   if(partial && (scsiid==bootscsiid)) return true;
 
   // We assume the boot disc is currently mounted.....
-  _swix(SCSIFS_Partitions,_INR(0,2)|_OUT(2),1,scsiid,start,&discno);
+  _swix(PartMan_SCSIFS_Partitions,_INR(0,2)|_OUT(2),1,scsiid,start,&discno);
   testprint(" gives discno %d,",discno);
   if(discno==-1 ) return false;
 
@@ -441,12 +441,12 @@ bool CheckBootDiscID(int scsiid, int start, bool partial)
 // or -1 if not currently mounted
 void MountedDiscNum(int scsiID, int partLBA, int *scsifsID)
 {
-  _swix(SCSIFS_Partitions,_INR(0,2)|_OUT(2),1,scsiID,partLBA,scsifsID);
+  _swix(PartMan_SCSIFS_Partitions,_INR(0,2)|_OUT(2),1,scsiID,partLBA,scsifsID);
 }
 
 // return SCSI ID & partition start address for SCSIFS mounted disc number
 // or -1 if not currently mounted
 void MountedDiscLoc(int scsifsID, int *scsiid, int *start)
 {
-  _swix(SCSIFS_Partitions,_INR(0,1)|_OUTR(1,2),2,scsifsID,scsiid,start);
+  _swix(PartMan_SCSIFS_Partitions,_INR(0,1)|_OUTR(1,2),2,scsifsID,scsiid,start);
 }

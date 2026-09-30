@@ -15,7 +15,7 @@
 #include "PMInclude.h"
 
 #include "swis.h"
-#include "debuglib/debuglib.h"
+#include "DebugLib/DebugLib.h"
 #include "Global/Services.h"
 #include "Global/RISCOS.h"
 #include "Global/UpCall.h"
@@ -506,7 +506,7 @@ void module_service_handler(int service_number, _kernel_swi_regs *r, void *pw)
              dr->mountcount++;
              pabase->drive=r->r[2];
          testprint("give partition offset for drive %d, ID %x as %x\n",r->r[2],r->r[3],pabase->partitionLBA);
-            _swix(SCSIFS_Partitions,_INR(0,2),0,r->r[2],pabase->partitionLBA);
+            _swix(PartMan_SCSIFS_Partitions,_INR(0,2),0,r->r[2],pabase->partitionLBA);
              i = MaxPartitions+1;
           }
           pabase++;
