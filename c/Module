@@ -26,6 +26,7 @@
 #include "scsisvce.h"
 #include "asm.h"
 #include "GPThdr.h"
+#include "MBR.h"
 #include "FormatBits.h"
 #include "Format.h"
 #include "SectorRW.h"
@@ -426,7 +427,23 @@ driveArray* ReadDrivePartitions (int drive)
       if(!dr)dr=scsiID2Array(drive);
     }
     else
-    { // couldnt get partition info
+    {
+      int starts[MaxPartitions];
+      size_t count;
+      if (ReadMBRPartitions(drive, starts, MaxPartitions, &count))
+      {
+        for (size_t i = 0; i < count; i++)
+        {
+          pa = registerDrive(drive, starts[i]);
+          if (pa != NULL)
+          {
+            pa->partitionLBA = starts[i];
+            pa->used = 2;
+          }
+        }
+        return scsiID2Array(drive);
+      }
+      // No recognised table: expose the whole device.
       pa=registerDrive(drive, 0);
       testprint("pa found %x\n", (int)pa);
       if(pa)

@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#ifndef PARTMAN_MBR_H
+#define PARTMAN_MBR_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+/* Return partition start sectors in table order, including EBR logical discs.
+ * Addresses are limited to the signed sector interface used by SCSIFS. */
+bool ReadMBRPartitions(int device, int *starts, size_t capacity, size_t *count);
+
+#endif
