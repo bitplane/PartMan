@@ -16,7 +16,7 @@
 #
 
 COMPONENT    = PartMan
-OBJS         = Module asm Diagnostic SectorRW crc32 GPT
+OBJS         = Module asm Diagnostic SectorRW crc32 GPT MBR
 CMHGDEPENDS  = Module
 CMHGFILE     = ModuleHdr
 HDRS         =

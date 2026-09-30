@@ -1,0 +1,107 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "PMInclude.h"
+#include "MBR.h"
+#include "SectorRW.h"
+#include "FormatBits.h"
+#include <stdint.h>
+#include <limits.h>
+
+static uint32_t read_le32(const unsigned char *p)
+{
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+           ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
+static bool extended(unsigned char type)
+{
+    return type == 0x05 || type == 0x0f || type == 0x85;
+}
+
+static bool valid_entry(const unsigned char *entry, uint32_t base,
+                        uint32_t limit, uint32_t *start, uint32_t *length)
+{
+    uint32_t relative = read_le32(entry + 8);
+    *length = read_le32(entry + 12);
+    if ((entry[0] != 0 && entry[0] != 0x80) || relative == 0 ||
+        *length == 0 || base >= limit || relative >= limit - base)
+        return false;
+    *start = base + relative;
+    return *start <= INT_MAX && *length <= limit - *start;
+}
+
+static bool read_table(int device, unsigned char *sector, int where, int size)
+{
+    return SecRead(device, OverrideKey, sector, size, where, size) == NULL &&
+           sector[510] == 0x55 && sector[511] == 0xaa;
+}
+
+bool ReadMBRPartitions(int device, int *starts, size_t capacity, size_t *count)
+{
+    int maximum, sector_size;
+    unsigned char *sector = NULL;
+    unsigned char primary[64];
+    size_t found = 0;
+    bool success = false;
+    *count = 0;
+    if (ReadDiscCapacity(device, OverrideKey, &maximum, &sector_size) != NULL ||
+        maximum <= 0 || maximum == INT_MAX || sector_size < 512 ||
+        sector_size > 4096 || capacity == 0)
+        return false;
+    uint32_t limit = (uint32_t)maximum + 1;
+    sector = malloc(sector_size);
+    if (sector == NULL || !read_table(device, sector, 0, sector_size))
+        goto done;
+    memcpy(primary, sector + 446, sizeof primary);
+
+    for (size_t i = 0; i < 4 && found < capacity; i++)
+    {
+        const unsigned char *entry = primary + 16 * i;
+        uint32_t start, length;
+        if (entry[4] == 0)
+            continue;
+        /* A protective or hybrid MBR belongs to the GPT reader. */
+        if (entry[4] == 0xee || !valid_entry(entry, 0, limit, &start, &length))
+            goto done;
+        if (!extended(entry[4]))
+        {
+            starts[found++] = (int)start;
+            continue;
+        }
+
+        uint32_t container = start, end = start + length, current = start;
+        uint32_t visited[64];
+        size_t visited_count = 0;
+        while (found < capacity)
+        {
+            if (visited_count == sizeof visited / sizeof visited[0])
+                goto done;
+            for (size_t j = 0; j < visited_count; j++)
+                if (visited[j] == current)
+                    goto done;
+            visited[visited_count++] = current;
+            if (!read_table(device, sector, (int)current, sector_size))
+                goto done;
+            entry = sector + 446;
+            if (entry[4] != 0)
+            {
+                if (entry[4] == 0xee || extended(entry[4]) ||
+                    !valid_entry(entry, current, end, &start, &length))
+                    goto done;
+                starts[found++] = (int)start;
+            }
+            entry += 16;
+            if (entry[4] == 0)
+                break;
+            if (!extended(entry[4]) ||
+                !valid_entry(entry, container, end, &start, &length))
+                goto done;
+            current = start;
+        }
+    }
+    success = found != 0;
+    if (success)
+        *count = found;
+done:
+    free(sector);
+    return success;
+}
